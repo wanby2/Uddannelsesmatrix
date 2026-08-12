@@ -1,0 +1,2278 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inconsolata:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #10151b;
+    --panel: #161d25;
+    --panel-raised: #1c242e;
+    --line: #263140;
+    --text: #e7edf3;
+    --text-dim: #8ea0b3;
+    --text-faint: #57677a;
+    --amber: #f2a93b;
+    --green: #35d68a;
+    --red: #e5555f;
+    --blue: #4f9eea;
+    --purple: #b98af2;
+    --mono: 'Inconsolata', ui-monospace, 'SF Mono', monospace;
+    --disp: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  #elevmatrix-root{
+    font-family: var(--disp);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100%;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  #elevmatrix-root button{ font-family: var(--disp); cursor:pointer; }
+  #elevmatrix-root input, #elevmatrix-root select, #elevmatrix-root textarea{
+    font-family: var(--disp);
+  }
+
+  .em-topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding: 16px 24px;
+    background: linear-gradient(180deg, #141b23, #10151b);
+    border-bottom: 1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .em-brand{ display:flex; align-items:center; gap:12px; }
+  .em-brand-mark{
+    width:34px; height:34px; border-radius:8px;
+    background: var(--amber);
+    color:#191205; font-weight:700; font-family: var(--mono);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; letter-spacing:-0.5px;
+    box-shadow: 0 0 0 3px rgba(242,169,59,0.15);
+  }
+  .em-brand-text h1{ margin:0; font-size:16px; font-weight:700; letter-spacing:0.2px; }
+  .em-brand-text p{ margin:0; font-size:11px; color:var(--text-dim); font-family: var(--mono); letter-spacing:0.3px; }
+
+  .em-tabs{ display:flex; gap:4px; background: var(--panel); border:1px solid var(--line); border-radius:10px; padding:4px; }
+  .em-tab{
+    border:none; background:transparent; color:var(--text-dim); padding:8px 16px; border-radius:7px;
+    font-size:12.5px; font-weight:600;
+  }
+  .em-tab.active{ background: var(--amber); color:#1a1206; }
+  .em-tab:not(.active):hover{ color: var(--text); }
+
+  .em-count-pill{
+    font-family: var(--mono); font-size:11px; color:var(--text-dim);
+    border:1px solid var(--line); padding:5px 10px; border-radius:20px;
+    background: var(--panel); white-space:nowrap;
+  }
+
+  .em-role-btn{
+    font-family: var(--mono); font-size:11px; font-weight:600; color: var(--text-dim);
+    border:1px solid var(--line); padding:6px 12px; border-radius:20px;
+    background: var(--panel); white-space:nowrap; cursor:pointer;
+  }
+  .em-role-btn:hover{ border-color:#39485a; color: var(--text); }
+  .em-role-btn.role-admin{ background: rgba(53,214,138,0.14); border-color: rgba(53,214,138,0.4); color: var(--green); }
+  .em-role-btn.role-godkender{ background: rgba(79,158,234,0.14); border-color: rgba(79,158,234,0.4); color: var(--blue); }
+
+  .em-body{ padding: 20px 24px 28px; }
+
+  /* ---- List / grid ---- */
+  .em-toolbar{
+    display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center;
+  }
+  .em-search{
+    flex:1; min-width:180px;
+    background: var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:10px 14px; border-radius:9px; font-size:13px; outline:none;
+  }
+  .em-search::placeholder{ color: var(--text-faint); }
+  .em-search:focus{ border-color: var(--amber); }
+
+  .em-btn{
+    border:none; border-radius:9px; padding:10px 16px; font-size:13px; font-weight:600;
+    display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+    transition: transform .08s ease, filter .12s ease;
+  }
+  .em-btn:active{ transform: scale(0.97); }
+  .em-btn-primary{ background: var(--amber); color:#1a1206; }
+  .em-btn-primary:hover{ filter: brightness(1.08); }
+  .em-btn-ghost{ background: transparent; color: var(--text-dim); border:1px solid var(--line); }
+  .em-btn-ghost:hover{ color: var(--text); border-color:#39485a; }
+  .em-btn-danger{ background: rgba(229,85,95,0.12); color: var(--red); border:1px solid rgba(229,85,95,0.35); }
+  .em-btn-danger:hover{ background: rgba(229,85,95,0.2); }
+
+  .em-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:12px; }
+
+  .em-card{
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    cursor:pointer;
+    transition: border-color .12s ease, transform .1s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .em-card:hover{ border-color:#39485a; transform: translateY(-1px); }
+  .em-card::before{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background: var(--stripe, var(--text-faint));
+  }
+  .em-card-name{ font-weight:700; font-size:15px; margin:0 0 3px; }
+  .em-card-meta{ font-family: var(--mono); font-size:11.5px; color:var(--text-dim); margin:0 0 12px; line-height:1.6; }
+  .em-progress-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .em-progress-track{ flex:1; height:6px; background:#0d1218; border-radius:4px; overflow:hidden; }
+  .em-progress-fill{ height:100%; background: var(--amber); border-radius:4px; }
+  .em-progress-label{ font-family: var(--mono); font-size:10.5px; color:var(--text-dim); min-width:34px; text-align:right;}
+  .em-card-badges{ display:flex; gap:6px; flex-wrap:wrap; }
+  .em-status-badge{
+    display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-family: var(--mono);
+    padding:3px 9px; border-radius:20px; font-weight:600; letter-spacing:0.3px;
+  }
+  .em-status-approved{ background: rgba(53,214,138,0.14); color: var(--green); }
+  .em-status-progress{ background: rgba(242,169,59,0.14); color: var(--amber); }
+  .em-status-progress::before{ content:''; display:inline-block; width:5px; height:5px; border-radius:50%; background: var(--amber); margin-right:2px; animation: em-pulse 1.6s ease-in-out infinite; }
+  @keyframes em-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+  .em-status-behandler{ background: rgba(79,158,234,0.14); color: var(--blue); }
+  .em-status-laege{ background: rgba(185,138,242,0.14); color: var(--purple); }
+  .em-status-nospor{ background: rgba(142,160,179,0.1); color: var(--text-dim); }
+  .em-status-course{ background: rgba(185,138,242,0.14); color: var(--purple); }
+
+  .em-empty{
+    text-align:center; padding: 50px 20px; color: var(--text-dim);
+    border:1px dashed var(--line); border-radius:12px;
+  }
+  .em-empty h3{ color: var(--text); margin: 10px 0 6px; font-size:15px; }
+  .em-empty p{ margin:0; font-size:12.5px; }
+
+  /* ---- Form ---- */
+  .em-form-panel{
+    background: var(--panel-raised); border:1px solid var(--line); border-radius:12px;
+    padding:18px; margin-bottom:18px;
+  }
+  .em-form-title{ font-size:13px; font-weight:700; margin:0 0 14px; color: var(--text); display:flex; align-items:center; gap:8px;}
+  .em-form-row{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
+  .em-form-row.em-2col{ grid-template-columns: 1fr 1fr; }
+  @media (max-width: 640px){ .em-form-row{ grid-template-columns: 1fr; } }
+  .em-field label{ display:block; font-size:10.5px; font-family: var(--mono); color: var(--text-dim); margin-bottom:5px; letter-spacing:0.3px; text-transform:uppercase;}
+  .em-field input, .em-field select{
+    width:100%; background: var(--bg); border:1px solid var(--line); color:var(--text);
+    padding:9px 11px; border-radius:8px; font-size:13px; outline:none;
+  }
+  .em-field input:focus, .em-field select:focus{ border-color: var(--amber); }
+  .em-form-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+  .em-form-hint{ font-size:11.5px; color: var(--text-faint); margin: -6px 0 12px; }
+
+  /* ---- Detail view ---- */
+  .em-back{
+    display:inline-flex; align-items:center; gap:6px; background:none; border:none;
+    color: var(--text-dim); font-size:12.5px; font-family: var(--mono); padding:0; margin-bottom:16px;
+  }
+  .em-back:hover{ color: var(--amber); }
+  .em-crumbs{ display:flex; gap:6px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+
+  .em-detail-header{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+    background: var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px;
+    margin-bottom:18px; flex-wrap:wrap;
+  }
+  .em-detail-name{ font-size:22px; font-weight:700; margin:0 0 8px; }
+  .em-detail-desc{ font-size:12.5px; color: var(--text-dim); margin: 0 0 8px; max-width:520px; }
+  .em-detail-meta{ font-family: var(--mono); font-size:12px; color:var(--text-dim); display:flex; gap:16px; flex-wrap:wrap; }
+  .em-detail-meta span b{ color: var(--text); font-weight:600; }
+
+  .em-approve-block{ text-align:right; }
+  .em-approve-toggle{
+    display:flex; align-items:center; gap:10px; background: var(--panel-raised);
+    border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+  }
+  .em-switch{ position:relative; width:38px; height:21px; border-radius:20px; background:#2a3644; transition: background .15s; flex-shrink:0; }
+  .em-switch.on{ background: var(--green); }
+  .em-switch::after{ content:''; position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%; background:#fff; transition: transform .15s; }
+  .em-switch.on::after{ transform: translateX(17px); }
+  .em-switch.disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .em-section-title{ font-size:12px; font-weight:700; color: var(--text-dim); text-transform:uppercase; letter-spacing:0.6px; margin: 22px 0 10px; display:flex; align-items:center; gap:8px;}
+  .em-section-title::after{ content:''; flex:1; height:1px; background: var(--line); }
+
+  .em-phase{ background: var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:12px; }
+  .em-phase-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .em-phase-head h4{ margin:0; font-size:13px; font-weight:700; }
+  .em-phase-head span{ font-family: var(--mono); font-size:10.5px; color: var(--text-faint); }
+
+  .em-skill-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding: 9px 0; border-top:1px solid var(--line);
+  }
+  .em-skill-row:first-of-type{ border-top:none; }
+  .em-skill-name{ font-size:13px; color: var(--text); }
+
+  .em-check-btn{
+    width:76px; height:30px; border-radius:8px; border:1px solid var(--line);
+    background: var(--bg); color: var(--text-faint); font-family: var(--mono); font-size:12px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:5px; flex-shrink:0;
+  }
+  .em-check-btn[data-state="godkendt"]{ background: rgba(53,214,138,0.14); border-color: rgba(53,214,138,0.4); color: var(--green); }
+  .em-check-btn[data-state="ikke"]{ background: rgba(229,85,95,0.12); border-color: rgba(229,85,95,0.35); color: var(--red); }
+  .em-check-btn[data-state="na"]{ background: rgba(142,160,179,0.1); border-color: var(--line); color: var(--text-dim); }
+
+  .em-goal-remove{
+    width:26px; height:26px; border-radius:7px; border:1px solid var(--line); background: var(--bg);
+    color: var(--text-faint); font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .em-goal-remove:hover{ color: var(--red); border-color: rgba(229,85,95,0.4); background: rgba(229,85,95,0.08); }
+
+  .em-goal-custom-tag{
+    font-family: var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:0.4px;
+    color: var(--amber); background: rgba(242,169,59,0.12); padding:2px 6px; border-radius:20px; margin-left:6px;
+  }
+
+  .em-goal-add-row{
+    display:flex; gap:8px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+  }
+  .em-goal-add-input{
+    flex:1; background: var(--bg); border:1px solid var(--line); color:var(--text);
+    padding:8px 11px; border-radius:8px; font-size:12.5px; outline:none;
+  }
+  .em-goal-add-input:focus{ border-color: var(--amber); }
+  .em-goal-add-btn{ padding:8px 14px; font-size:12.5px; }
+
+  .em-phase-chip{
+    display:inline-flex; align-items:center; gap:6px; background: var(--panel-raised);
+    border:1px solid var(--line); border-radius:20px; padding:6px 6px 6px 12px; font-size:12px; color: var(--text);
+  }
+  .em-phase-chip button{
+    width:20px; height:20px; border-radius:50%; border:none; background:transparent;
+    color: var(--text-faint); font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+  .em-phase-chip button:hover{ color: var(--red); background: rgba(229,85,95,0.12); }
+  .em-phase-chip .em-phase-edit:hover{ color: var(--amber); background: rgba(242,169,59,0.12); }
+
+  .em-phase-block{ margin-bottom:14px; }
+  .em-phase-skills-editor{
+    margin: 8px 0 4px 6px; padding: 8px 0 2px 14px; border-left:2px solid var(--line);
+  }
+  .em-tskill-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding: 5px 0; font-size:12px; color: var(--text-dim);
+  }
+  .em-tskill-row .em-tskill-actions{ display:flex; gap:4px; flex-shrink:0; }
+  .em-tskill-row button{
+    width:22px; height:22px; border-radius:6px; border:1px solid var(--line); background: var(--bg);
+    color: var(--text-faint); font-size:12px; display:flex; align-items:center; justify-content:center;
+  }
+  .em-tskill-row .em-tskill-edit:hover{ color: var(--amber); background: rgba(242,169,59,0.12); }
+  .em-tskill-row .em-tskill-remove:hover{ color: var(--red); background: rgba(229,85,95,0.12); }
+  .em-tskill-empty{ font-size:11.5px; color: var(--text-faint); padding: 4px 0; }
+  .em-qual-chip{
+    display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:20px;
+    border:1px solid var(--line); background: var(--panel-raised); color: var(--text-dim);
+    font-size:12.5px; font-weight:600; transition: transform .08s ease;
+  }
+  .em-qual-chip:hover{ border-color:#39485a; color: var(--text); }
+  .em-qual-chip:active{ transform: scale(0.97); }
+  .em-qual-chip.active{ background: rgba(53,214,138,0.14); border-color: rgba(53,214,138,0.4); color: var(--green); }
+  .em-qual-chip.active.behandler{ background: rgba(79,158,234,0.14); border-color: rgba(79,158,234,0.4); color: var(--blue); }
+  .em-qual-chip.active.laege{ background: rgba(185,138,242,0.14); border-color: rgba(185,138,242,0.4); color: var(--purple); }
+  .em-qual-chip:disabled{ opacity:0.5; cursor:not-allowed; }
+  .em-qual-chip:disabled:hover{ border-color: var(--line); color: var(--text-dim); }
+
+  /* ---- Midtvejs milestone (elever) ---- */
+  .em-milestone{ position:relative; margin: 30px 0 20px; text-align:center; height:1px; background: var(--line); }
+  .em-milestone-badge{
+    position:relative; top:-11px; z-index:1; display:inline-flex; align-items:center; gap:8px;
+    background: var(--bg); padding:0 16px; font-family: var(--mono); font-size:10.5px;
+    color: var(--text-dim); text-transform:uppercase; letter-spacing:0.6px;
+  }
+  .em-milestone-dot{
+    width:8px; height:8px; border-radius:50%; background: var(--amber); flex-shrink:0;
+    box-shadow: 0 0 0 4px rgba(242,169,59,0.15);
+  }
+  .em-milestone-badge.done .em-milestone-dot{ background: var(--green); box-shadow: 0 0 0 4px rgba(53,214,138,0.15); }
+
+  /* ---- Track (spor) selection ---- */
+  .em-spor-panel{ background: var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:14px; }
+  .em-spor-lead{ font-size:12.5px; color: var(--text-dim); margin: 0 0 14px; }
+  .em-spor-options{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  @media (max-width:640px){ .em-spor-options{ grid-template-columns:1fr; } }
+  .em-spor-option{
+    border:1px solid var(--line); background: var(--panel-raised); border-radius:12px; padding:16px;
+    text-align:left; cursor:pointer; transition: border-color .12s ease, transform .1s ease;
+  }
+  .em-spor-option:hover{ transform: translateY(-2px); }
+  .em-spor-option.behandler:hover{ border-color: var(--blue); }
+  .em-spor-option.laege:hover{ border-color: var(--purple); }
+  .em-spor-option h4{ margin:0 0 6px; font-size:14px; }
+  .em-spor-option.behandler h4{ color: var(--blue); }
+  .em-spor-option.laege h4{ color: var(--purple); }
+  .em-spor-option p{ margin:0; font-size:11.5px; color: var(--text-dim); line-height:1.5; }
+
+  .em-spor-chosen{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background: var(--panel-raised); border:1px solid var(--line); border-radius:10px; padding:12px 16px; flex-wrap:wrap;
+  }
+  .em-spor-chosen-label{ font-size:13px; font-weight:700; }
+  .em-spor-chosen.behandler .em-spor-chosen-label{ color: var(--blue); }
+  .em-spor-chosen.laege .em-spor-chosen-label{ color: var(--purple); }
+
+  .em-locked{
+    border:1px dashed var(--line); border-radius:12px; padding:20px; text-align:center;
+    color: var(--text-faint); font-size:12.5px;
+  }
+
+  /* ---- Notes ---- */
+  .em-note-form{ background: var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .em-note-row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px; }
+  @media (max-width:640px){ .em-note-row{ grid-template-columns:1fr; } }
+  .em-note-textarea{
+    width:100%; background: var(--bg); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px; border-radius:8px; font-size:13px; outline:none; resize:vertical; min-height:64px;
+    font-family: var(--disp);
+  }
+  .em-note-textarea:focus{ border-color: var(--amber); }
+
+  .em-note{
+    background: var(--panel); border:1px solid var(--line); border-left:3px solid var(--stripe, var(--text-faint));
+    border-radius: 10px; padding: 12px 14px; margin-bottom:10px;
+  }
+  .em-note-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:10px; flex-wrap:wrap;}
+  .em-note-author{ font-size:12px; font-weight:700; }
+  .em-note-date{ font-family: var(--mono); font-size:10.5px; color: var(--text-faint); }
+  .em-note-text{ font-size:13px; color: var(--text-dim); line-height:1.5; margin:0; }
+  .em-note-type{ font-family: var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:0.4px; padding:2px 7px; border-radius:20px; }
+
+  .em-loading{ display:flex; align-items:center; justify-content:center; padding:60px; color: var(--text-dim); font-family: var(--mono); font-size:13px; gap:10px;}
+  .em-spinner{ width:16px; height:16px; border-radius:50%; border:2px solid var(--line); border-top-color: var(--amber); animation: em-spin 0.7s linear infinite; }
+  @keyframes em-spin{ to{ transform: rotate(360deg); } }
+
+  .em-hint{ font-size:11px; color: var(--text-faint); margin-top:14px; font-family: var(--mono); }
+
+  /* ---- Dashboard ---- */
+  @keyframes em-fadein{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  .em-fade{ animation: em-fadein .28s ease; }
+
+  .em-kpi-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
+  .em-kpi-card{
+    background: var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px;
+    position:relative; overflow:hidden; transition: transform .12s ease, border-color .12s ease;
+  }
+  .em-kpi-card:hover{ transform: translateY(-2px); border-color:#39485a; }
+  .em-kpi-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--kpi, var(--amber)); }
+  .em-kpi-value{ font-size:30px; font-weight:700; font-family: var(--disp); color: var(--text); line-height:1; margin-bottom:8px; letter-spacing:-0.5px; }
+  .em-kpi-label{ font-size:12.5px; font-weight:600; color: var(--text-dim); margin-bottom:4px; }
+  .em-kpi-sub{ font-size:10.5px; font-family: var(--mono); color: var(--text-faint); }
+
+  .em-bar-row{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .em-bar-row:last-child{ margin-bottom:0; }
+  .em-bar-label{ width:90px; font-size:12px; color: var(--text-dim); flex-shrink:0; }
+  .em-bar-track{ flex:1; height:10px; background:#0d1218; border-radius:6px; overflow:hidden; }
+  .em-bar-fill{ height:100%; border-radius:6px; transition: width .6s cubic-bezier(.22,.8,.3,1); }
+  .em-bar-value{ width:26px; text-align:right; font-family: var(--mono); font-size:11px; color: var(--text-dim); flex-shrink:0; }
+
+  .em-log-row{
+    display:flex; align-items:baseline; gap:12px; padding:8px 0; border-top:1px solid var(--line); font-size:12.5px;
+  }
+  .em-log-row:first-child{ border-top:none; }
+  .em-log-time{ font-family: var(--mono); font-size:10.5px; color: var(--text-faint); flex-shrink:0; width:80px; }
+  .em-log-text{ color: var(--text-dim); line-height:1.5; }
+  .em-log-text b{ color: var(--text); }
+</style>
+
+<div id="elevmatrix-root">
+  <div class="em-topbar">
+    <div class="em-brand">
+      <div class="em-brand-mark">EMS</div>
+      <div class="em-brand-text">
+        <h1>Uddannelsesmatrix</h1>
+        <p id="em-subtitle">PRÆHOSPITAL OPLÆRING</p>
+      </div>
+    </div>
+    <div class="em-tabs" id="em-tabs">
+      <button class="em-tab" data-section="dashboard">Dashboard</button>
+      <button class="em-tab" data-section="elever">Elever</button>
+      <button class="em-tab" data-section="edu">Videreuddannelse</button>
+      <button class="em-tab" data-section="personale">Personale</button>
+    </div>
+    <div class="em-count-pill" id="em-count-pill">—</div>
+    <button class="em-role-btn" id="em-role-btn">🔒 Se kun</button>
+  </div>
+  <div class="em-body" id="em-body">
+    <div class="em-loading"><div class="em-spinner"></div> Henter data…</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const root = document.getElementById('elevmatrix-root');
+  const bodyEl = document.getElementById('em-body');
+  const countPill = document.getElementById('em-count-pill');
+  const subtitle = document.getElementById('em-subtitle');
+  const tabsEl = document.getElementById('em-tabs');
+  const roleBtn = document.getElementById('em-role-btn');
+
+  // Sikkerhedsnet: hvis en uventet JS-fejl opstår ET STED i appen, vis den
+  // tydeligt i stedet for at lade siden hænge for evigt på "Henter data…".
+  window.addEventListener('error', (e) => {
+    if(bodyEl && bodyEl.innerHTML.indexOf('Henter data') !== -1){
+      const msg = (e && e.message) ? e.message : 'Ukendt fejl';
+      bodyEl.innerHTML = `
+        <div class="em-empty" style="text-align:left;padding:24px;">
+          <h3>⚠️ Der opstod en fejl under indlæsning</h3>
+          <p style="font-family:monospace;font-size:12px;background:#0d1218;padding:10px;border-radius:8px;overflow-wrap:break-word;">${String(msg).replace(/</g,'&lt;')}</p>
+          <p>Prøv at genindlæse siden. Fejlteksten ovenfor kan sendes til den der satte filen op.</p>
+        </div>`;
+    }
+  });
+
+  // ===================== Adgang (simpel PIN-styring) =====================
+  // To roller: "Vejleder" kan godkende elever, deltagere og personale-kvalifikationer.
+  // "Admin" har alt: kan desuden tilføje/slette elever, uddannelser, faser/opgaver og anmærkninger.
+  // Skift disse to koder til jeres egne. Bemærk: dette er IKKE rigtig sikkerhed,
+  // bare en let spærre der forhindrer almindelige brugere i at rode ved en fejl.
+  const ADMIN_PIN = 'Admin1234';
+  const GODKENDER_PIN = 'Vejleder123';
+  let currentRole = 'viewer'; // 'viewer' | 'godkender' (Vejleder) | 'admin' (Admin)
+  let currentUserName = '';
+  function isAdmin(){ return currentRole === 'admin'; }
+  function canApprove(){ return currentRole === 'admin' || currentRole === 'godkender'; }
+  function actorLabel(){
+    const roleLabel = currentRole === 'admin' ? 'Admin' : currentRole === 'godkender' ? 'Vejleder' : 'Bruger';
+    return currentUserName ? `${currentUserName} (${roleLabel})` : roleLabel;
+  }
+
+  function updateRoleBtn(){
+    roleBtn.classList.remove('role-admin', 'role-godkender');
+    if(currentRole === 'admin'){ roleBtn.textContent = '🔓 Admin (log ud)'; roleBtn.classList.add('role-admin'); }
+    else if(currentRole === 'godkender'){ roleBtn.textContent = '🔓 Vejleder (log ud)'; roleBtn.classList.add('role-godkender'); }
+    else { roleBtn.textContent = '🔒 Se kun'; }
+  }
+  roleBtn.addEventListener('click', () => {
+    if(currentRole !== 'viewer'){
+      if(confirm('Log ud af ' + (currentRole === 'admin' ? 'admin' : 'vejleder') + '-tilstand?')){
+        currentRole = 'viewer'; currentUserName = ''; updateRoleBtn(); render();
+      }
+      return;
+    }
+    const pin = prompt('Indtast PIN-kode for at logge ind (admin eller vejleder):');
+    if(pin === null) return;
+    if(pin === ADMIN_PIN){ currentRole = 'admin'; }
+    else if(pin === GODKENDER_PIN){ currentRole = 'godkender'; }
+    else { alert('Forkert kode.'); return; }
+    const name = prompt('Dit navn (vises i historikken, valgfrit):');
+    currentUserName = (name || '').trim();
+    updateRoleBtn(); render();
+  });
+  updateRoleBtn();
+
+  const ELEV_KEY = 'elever-data-v2';
+  const EDU_KEY = 'videreuddannelse-v1';
+  const PERSONALE_KEY = 'personale-v1';
+  const ELEV_TEMPLATE_KEY = 'elev-template-v1';
+  const SETTINGS_KEY = 'settings-v1';
+  const ACTIVITY_LOG_KEY = 'activity-log-v1';
+
+  // ===================== Firebase Realtime Database backend =====================
+  // Sæt din Firebase "Database URL" ind her (slutter typisk på firebaseio.com).
+  // Se FIREBASE_SETUP.md for opsætningsvejledning.
+  const FIREBASE_DB_URL = 'https://uddannelsesmatrix-default-rtdb.europe-west1.firebasedatabase.app/';
+
+  function firebaseUrl(path){
+    return `${FIREBASE_DB_URL.replace(/\/$/, '')}/data/${encodeURIComponent(path)}.json`;
+  }
+  async function safeJson(res, context){
+    if(!res.ok){
+      throw new Error(`Firebase svarede med HTTP ${res.status} (${context}). Tjek Database-reglerne (skal tillade læsning/skrivning) og at Database URL er korrekt.`);
+    }
+    const text = await res.text();
+    if(text === ''){ return null; }
+    try{
+      return JSON.parse(text);
+    }catch(e){
+      throw new Error(`Uventet svar fra Firebase ved "${context}" (ikke gyldig JSON). Svar: ${text.slice(0,120)}`);
+    }
+  }
+  const storage = {
+    async get(key){
+      const res = await fetch(firebaseUrl(key));
+      const value = await safeJson(res, 'get ' + key);
+      if(value === null) throw new Error('Nøgle ikke fundet: ' + key);
+      return { key, value };
+    },
+    async set(key, value){
+      const res = await fetch(firebaseUrl(key), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(value),
+      });
+      await safeJson(res, 'set ' + key);
+      return { key, value };
+    },
+    async delete(key){
+      const res = await fetch(firebaseUrl(key), { method: 'DELETE' });
+      await safeJson(res, 'delete ' + key);
+      return { key, deleted: true };
+    },
+    async list(prefix){
+      const res = await fetch(`${FIREBASE_DB_URL.replace(/\/$/, '')}/data.json?shallow=true`);
+      const data = await safeJson(res, 'list');
+      const keys = data ? Object.keys(data).filter(k => k.indexOf(prefix || '') === 0) : [];
+      return { keys };
+    }
+  };
+
+  // ===================== Fælles hjælpefunktioner =====================
+  function uid(){ return 'e_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function todayISO(){ const d = new Date(); return d.toISOString().slice(0,10); }
+  function fmtDate(iso){
+    if(!iso) return '—';
+    const [y,m,d] = iso.split('-');
+    return (d&&m&&y) ? `${d}/${m}/${y}` : iso;
+  }
+  function escapeHtml(s){
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function effectiveSkillsForPhase(entity, phase){
+    const removed = entity.removedSkills || [];
+    const base = (phase.skills || []).filter(s => !removed.includes(s.key));
+    const extra = (entity.extraSkills && entity.extraSkills[phase.key]) || [];
+    return base.concat(extra.filter(s => !removed.includes(s.key)));
+  }
+
+  // Generiske handlinger på "mål" (kompetencer) — bruges af BÅDE elever og videreuddannelse
+  async function cycleSkill(entity, skillKey, saveFn, rerenderFn){
+    const order = ['', 'godkendt', 'ikke', 'na'];
+    const cur = entity.competencies[skillKey] || '';
+    entity.competencies[skillKey] = order[(order.indexOf(cur) + 1) % order.length];
+    await saveFn(); rerenderFn();
+  }
+  async function addGoal(entity, phaseKey, rawLabel, saveFn, rerenderFn){
+    const label = (rawLabel || '').trim();
+    if(!label) return;
+    const key = 'custom_' + phaseKey + '_' + uid();
+    if(!entity.extraSkills) entity.extraSkills = {};
+    if(!entity.extraSkills[phaseKey]) entity.extraSkills[phaseKey] = [];
+    entity.extraSkills[phaseKey].push({ key, label });
+    entity.competencies[key] = '';
+    await saveFn(); rerenderFn();
+  }
+  async function removeGoal(entity, phaseKey, skillKey, isCustom, saveFn, rerenderFn){
+    if(!confirm('Fjern dette mål?')) return;
+    if(isCustom){
+      if(entity.extraSkills && entity.extraSkills[phaseKey]){
+        entity.extraSkills[phaseKey] = entity.extraSkills[phaseKey].filter(s => s.key !== skillKey);
+      }
+      delete entity.competencies[skillKey];
+    } else {
+      if(!entity.removedSkills) entity.removedSkills = [];
+      if(!entity.removedSkills.includes(skillKey)) entity.removedSkills.push(skillKey);
+    }
+    await saveFn(); rerenderFn();
+  }
+  async function toggleApprove(entity, saveFn, rerenderFn, notifyText){
+    entity.godkendt = !entity.godkendt;
+    entity.godkendelsesdato = entity.godkendt ? todayISO() : '';
+    await saveFn(); rerenderFn();
+    if(entity.godkendt){
+      if(notifyText) sendDiscordNotification(notifyText);
+      logActivity(`Godkendte **${entity.navn}**`);
+    } else {
+      logActivity(`Fjernede godkendelse for **${entity.navn}**`);
+    }
+  }
+  async function addNote(entity, author, type, text, saveFn, rerenderFn){
+    if(!(text || '').trim()) return;
+    entity.notes.push({ id: uid(), author: (author||'').trim() || 'Ukendt', type, text: text.trim(), dato: todayISO() });
+    await saveFn(); rerenderFn();
+  }
+  async function removeNote(entity, noteId, saveFn, rerenderFn){
+    if(!confirm('Slet denne anmærkning permanent?')) return;
+    entity.notes = entity.notes.filter(n => n.id !== noteId);
+    await saveFn(); rerenderFn();
+  }
+
+  function renderPhase(phase, entity){
+    const skills = effectiveSkillsForPhase(entity, phase);
+    const doneInPhase = skills.filter(s => entity.competencies[s.key] === 'godkendt').length;
+    let html = `<div class="em-phase"><div class="em-phase-head"><h4>${escapeHtml(phase.label)}</h4><span>${doneInPhase}/${skills.length}</span></div>`;
+    if(skills.length === 0){
+      html += `<p style="font-size:12px;color:var(--text-faint);margin:0 0 6px;">Ingen mål endnu${isAdmin() ? ' — tilføj det første nedenfor.' : '.'}</p>`;
+    }
+    skills.forEach(s => {
+      const isCustom = s.key.startsWith('custom_');
+      const state = entity.competencies[s.key] || '';
+      const label = state === 'godkendt' ? '✓ Godkendt' : state === 'ikke' ? '✗ Mangler' : state === 'na' ? '– N/A' : 'Sæt status';
+      html += `
+      <div class="em-skill-row">
+        <span class="em-skill-name">${escapeHtml(s.label)}${isCustom ? ' <span class="em-goal-custom-tag">eget mål</span>' : ''}</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="em-check-btn" data-state="${state}" data-skill="${s.key}" style="${canApprove()?'':'cursor:default;opacity:0.7;'}">${label}</button>
+          ${isAdmin() ? `<button class="em-goal-remove" title="Fjern mål" data-phase="${phase.key}" data-skill="${s.key}" data-custom="${isCustom ? '1':'0'}">×</button>` : ''}
+        </div>
+      </div>`;
+    });
+    if(isAdmin()){
+      html += `
+      <div class="em-goal-add-row">
+        <input class="em-goal-add-input" data-phase="${phase.key}" id="em-goal-input-${phase.key}" placeholder="Tilføj eget mål…"/>
+        <button class="em-btn em-btn-ghost em-goal-add-btn" data-phase="${phase.key}">+ Tilføj</button>
+      </div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  function attachGoalListeners(entity, saveFn, rerenderFn){
+    root.querySelectorAll('.em-check-btn').forEach(btn => {
+      btn.addEventListener('click', () => { if(canApprove()) cycleSkill(entity, btn.dataset.skill, saveFn, rerenderFn); });
+    });
+    root.querySelectorAll('.em-goal-remove').forEach(btn => {
+      btn.addEventListener('click', () => removeGoal(entity, btn.dataset.phase, btn.dataset.skill, btn.dataset.custom === '1', saveFn, rerenderFn));
+    });
+    root.querySelectorAll('.em-goal-add-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('em-goal-input-' + btn.dataset.phase);
+        addGoal(entity, btn.dataset.phase, input.value, saveFn, rerenderFn);
+      });
+    });
+    root.querySelectorAll('.em-goal-add-input').forEach(inp => {
+      inp.addEventListener('keydown', ev => {
+        if(ev.key === 'Enter'){ addGoal(entity, inp.dataset.phase, inp.value, saveFn, rerenderFn); }
+      });
+    });
+  }
+
+  function allNoteTypes(){
+    return NOTE_TYPES.concat(settings.customNoteTypes || []);
+  }
+  function renderNotesSection(entity){
+    let html = `<div class="em-section-title">Anmærkninger</div>`;
+    html += `
+    <div class="em-note-form">
+      <div class="em-note-row">
+        <div class="em-field"><label>Forfatter</label><input id="em-note-author" placeholder="Dit navn"/></div>
+        <div class="em-field"><label>Type</label>
+          <select id="em-note-type">${allNoteTypes().map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="em-field" style="margin-bottom:10px;"><label>Anmærkning</label>
+        <textarea class="em-note-textarea" id="em-note-text" placeholder="Skriv en anmærkning…"></textarea>
+      </div>
+      <div class="em-form-actions"><button class="em-btn em-btn-primary" id="em-add-note-btn">Tilføj anmærkning</button></div>
+    </div>`;
+    if(isAdmin()){
+      html += `
+      <div class="em-goal-add-row" style="border-top:none;padding-top:0;margin-top:-6px;margin-bottom:14px;">
+        <input class="em-goal-add-input" id="em-new-notetype-input" placeholder="Ny anmærkningstype…"/>
+        <button class="em-btn em-btn-ghost" id="em-add-notetype-btn">+ Tilføj type</button>
+      </div>`;
+    }
+    if(!canApprove()){
+      html += `<div class="em-empty"><p>🔒 Kun vejledere og admin kan se tidligere anmærkninger.</p></div>`;
+      return html;
+    }
+    if(entity.notes.length === 0){
+      html += `<div class="em-empty"><p>Ingen anmærkninger endnu.</p></div>`;
+    } else {
+      [...entity.notes].sort((a,b) => b.dato.localeCompare(a.dato)).forEach(n => {
+        html += `
+        <div class="em-note" style="--stripe:${NOTE_TYPE_COLOR[n.type]||'var(--text-faint)'}">
+          <div class="em-note-top">
+            <span class="em-note-author">${escapeHtml(n.author)}</span>
+            <span class="em-note-type" style="background:color-mix(in srgb, ${NOTE_TYPE_COLOR[n.type]||'#888'} 18%, transparent); color:${NOTE_TYPE_COLOR[n.type]||'var(--text-dim)'}">${escapeHtml(n.type)}</span>
+            <span class="em-note-date">${fmtDate(n.dato)}</span>
+            ${isAdmin() ? `<button class="em-goal-remove" title="Slet anmærkning" data-note="${n.id}" style="margin-left:auto;">×</button>` : ''}
+          </div>
+          <p class="em-note-text">${escapeHtml(n.text)}</p>
+        </div>`;
+      });
+    }
+    return html;
+  }
+
+  function attachNoteListener(entity, saveFn, rerenderFn){
+    document.getElementById('em-add-note-btn').addEventListener('click', () => {
+      const author = document.getElementById('em-note-author').value;
+      const type = document.getElementById('em-note-type').value;
+      const text = document.getElementById('em-note-text').value;
+      addNote(entity, author, type, text, saveFn, rerenderFn);
+    });
+    const addTypeBtn = document.getElementById('em-add-notetype-btn');
+    if(addTypeBtn){
+      addTypeBtn.addEventListener('click', () => {
+        const input = document.getElementById('em-new-notetype-input');
+        onAddNoteType(input.value, rerenderFn);
+      });
+    }
+    if(isAdmin()){
+      root.querySelectorAll('.em-note button[data-note]').forEach(btn => {
+        btn.addEventListener('click', () => removeNote(entity, btn.dataset.note, saveFn, rerenderFn));
+      });
+    }
+  }
+  async function onAddNoteType(rawLabel, rerenderFn){
+    const label = (rawLabel || '').trim();
+    if(!label) return;
+    if(!settings.customNoteTypes) settings.customNoteTypes = [];
+    if(!NOTE_TYPES.includes(label) && !settings.customNoteTypes.includes(label)){
+      settings.customNoteTypes.push(label);
+    }
+    await saveSettings();
+    rerenderFn();
+  }
+
+  const NOTE_TYPES = ['Observation','Ros','Forbedringspunkt','Advarsel','Godkendelse'];
+  const NOTE_TYPE_COLOR = {
+    'Observation': 'var(--blue)', 'Ros': 'var(--green)', 'Forbedringspunkt': 'var(--amber)',
+    'Advarsel': 'var(--red)', 'Godkendelse': 'var(--green)'
+  };
+
+  // ===================== ELEVER-modul =====================
+  const DEFAULT_ELEV_TEMPLATE = {
+    common: [
+      { key:'p1', label:'Dag 1-3 · Observer (fælles)', skills:[
+        { key:'radio_mabcde', label:'Lært radio & MABCDE' },
+        { key:'p1_patienter', label:'Deltaget i 5 patienter' },
+      ]},
+      { key:'p2', label:'Dag 4-7 · Hjælp til (fælles)', skills:[
+        { key:'p2_patienter', label:'5 patienter' },
+        { key:'p2_traume', label:'1 traume' },
+      ]},
+    ],
+    behandler: [
+      { key:'p3b', label:'Dag 8-11 · Gør det selv (Behandler)', skills:[
+        { key:'p3_patienter', label:'5 patienter' },
+        { key:'p3_traumer', label:'2 traumer' },
+        { key:'iv_adgang', label:'IV-adgang' },
+        { key:'immobilisering', label:'Immobilisering' },
+      ]},
+      { key:'p4b', label:'Dag 12-14 · Afsluttende krav (Behandler)', skills:[
+        { key:'mabcde', label:'MABCDE' },
+        { key:'bloedning', label:'Stoppe blødning' },
+        { key:'brud', label:'Behandle brud' },
+        { key:'skudsaar', label:'Behandle skudsår' },
+        { key:'rapport', label:'Give rapport' },
+      ]},
+    ],
+    laege: [
+      { key:'p3l', label:'Dag 8-11 · Gør det selv (Læge)', skills:[
+        { key:'journalfoering', label:'Journalføring' },
+        { key:'traumemodtagelse_obs', label:'Traumemodtagelse (observation)' },
+        { key:'assistere_op', label:'Assistere ved operation' },
+        { key:'diagnostik_basal', label:'Diagnostik – basale cases' },
+      ]},
+      { key:'p4l', label:'Dag 12-14 · Afsluttende krav (Læge)', skills:[
+        { key:'diagnostik', label:'Diagnostik' },
+        { key:'syning', label:'Syning' },
+        { key:'kirurgi_basal', label:'Basale kirurgiske procedurer' },
+        { key:'traumemodtagelse', label:'Traumemodtagelse' },
+        { key:'rapport_hospital', label:'Rapportering til præhospital' },
+      ]},
+    ],
+  };
+  const TRACKS = {
+    behandler: { label: 'Behandler', sub: 'Præhospital', desc: 'Fortsætter i felten: ambulance, akutbehandling og transport.', css: 'behandler' },
+    laege: { label: 'Læge', sub: 'Inhospital', desc: 'Fortsætter på hospitalet: modtagelse, diagnostik og assistance ved operation.', css: 'laege' },
+  };
+
+  let elevTemplate = { common: [], behandler: [], laege: [] };
+
+  function normalizeElevTemplate(t){
+    if(!t) t = {};
+    if(!Array.isArray(t.common)) t.common = DEFAULT_ELEV_TEMPLATE.common;
+    if(!Array.isArray(t.behandler)) t.behandler = DEFAULT_ELEV_TEMPLATE.behandler;
+    if(!Array.isArray(t.laege)) t.laege = DEFAULT_ELEV_TEMPLATE.laege;
+    return t;
+  }
+  async function saveElevTemplate(silent){
+    try{ await storage.set(ELEV_TEMPLATE_KEY, JSON.stringify(elevTemplate)); }
+    catch(err){ console.error('Kunne ikke gemme elev-faser', err); if(!silent) alert('Kunne ikke gemme til Firebase. Tjek FIREBASE_DB_URL og din internetforbindelse.'); }
+  }
+  async function loadElevTemplate(){
+    try{
+      const res = await storage.get(ELEV_TEMPLATE_KEY);
+      elevTemplate = normalizeElevTemplate(JSON.parse(res.value));
+    }catch(e){
+      elevTemplate = JSON.parse(JSON.stringify(DEFAULT_ELEV_TEMPLATE));
+      try{ await saveElevTemplate(true); }catch(e2){ /* ignoreres, prøves igen ved næste gem */ }
+    }
+  }
+  async function onAddElevPhase(scope, rawLabel){
+    const label = (rawLabel || '').trim();
+    if(!label) return;
+    elevTemplate[scope].push({ key: 'ephase_' + uid(), label, skills: [] });
+    await saveElevTemplate();
+    render();
+  }
+  async function onRenameElevPhase(scope, phaseKey){
+    const phase = elevTemplate[scope].find(p => p.key === phaseKey);
+    if(!phase) return;
+    const newLabel = prompt('Nyt navn for fasen:', phase.label);
+    if(newLabel === null) return;
+    const trimmed = newLabel.trim();
+    if(!trimmed) return;
+    phase.label = trimmed;
+    await saveElevTemplate();
+    render();
+  }
+  async function onRemoveElevPhase(scope, phaseKey){
+    const phase = elevTemplate[scope].find(p => p.key === phaseKey);
+    if(!phase) return;
+    if(!confirm(`Fjern fasen "${phase.label}" for alle elever? Alle mål under den fjernes.`)) return;
+    elevTemplate[scope] = elevTemplate[scope].filter(p => p.key !== phaseKey);
+    const baseKeys = new Set((phase.skills || []).map(s => s.key));
+    elever.forEach(e => {
+      if(e.extraSkills) delete e.extraSkills[phaseKey];
+      Object.keys(e.competencies).forEach(k => {
+        if(baseKeys.has(k) || k.startsWith('custom_' + phaseKey + '_')) delete e.competencies[k];
+      });
+    });
+    await saveElevTemplate();
+    await saveElever();
+    render();
+  }
+
+  let elever = [];
+
+  function phasesForElev(e){
+    return e.spor ? elevTemplate.common.concat(elevTemplate[e.spor]) : elevTemplate.common;
+  }
+  function allSkillKeysForElev(e){
+    return phasesForElev(e).flatMap(p => effectiveSkillsForPhase(e, p).map(s => s.key));
+  }
+  function progressOfElev(e){
+    const keys = allSkillKeysForElev(e);
+    const done = keys.filter(k => e.competencies[k] === 'godkendt').length;
+    return { done, total: keys.length, pct: keys.length ? Math.round(done / keys.length * 100) : 0 };
+  }
+  function normalizeElev(e){
+    if(!e.extraSkills) e.extraSkills = {};
+    if(!e.removedSkills) e.removedSkills = [];
+    if(!e.competencies) e.competencies = {};
+    if(!e.notes) e.notes = [];
+    return e;
+  }
+  async function saveElever(){
+    try{ await storage.set(ELEV_KEY, JSON.stringify(elever)); }
+    catch(err){ console.error('Kunne ikke gemme elever', err); alert('Kunne ikke gemme til Firebase. Tjek FIREBASE_DB_URL og din internetforbindelse.'); }
+  }
+  async function loadElever(){
+    try{
+      const res = await storage.get(ELEV_KEY);
+      elever = JSON.parse(res.value).map(normalizeElev);
+    }catch(e){ elever = []; }
+  }
+  function findElev(id){ return elever.find(e => e.id === id); }
+
+  // ===================== Indstillinger (karensdage, anmærkningstyper m.m.) =====================
+  let settings = { cooldownDays: 0, customNoteTypes: [], discordWebhookUrl: '' };
+  function normalizeSettings(s){
+    if(!s) s = {};
+    if(typeof s.cooldownDays !== 'number' || isNaN(s.cooldownDays) || s.cooldownDays < 0) s.cooldownDays = 0;
+    if(!Array.isArray(s.customNoteTypes)) s.customNoteTypes = [];
+    if(typeof s.discordWebhookUrl !== 'string') s.discordWebhookUrl = '';
+    return s;
+  }
+  async function saveSettings(){
+    try{ await storage.set(SETTINGS_KEY, JSON.stringify(settings)); }
+    catch(err){ console.error('Kunne ikke gemme indstillinger', err); alert('Kunne ikke gemme til Firebase. Tjek FIREBASE_DB_URL og din internetforbindelse.'); }
+  }
+  async function loadSettings(){
+    try{
+      const res = await storage.get(SETTINGS_KEY);
+      settings = normalizeSettings(JSON.parse(res.value));
+    }catch(e){ settings = { cooldownDays: 0, customNoteTypes: [], discordWebhookUrl: '' }; }
+  }
+  async function onSetCooldownDays(rawValue){
+    const n = parseInt(rawValue, 10);
+    settings.cooldownDays = (isNaN(n) || n < 0) ? 0 : n;
+    await saveSettings();
+    renderElevList();
+  }
+  // Returnerer antal dage tilbage af karensperioden for en godkendt elev (0 = klar nu)
+  function cooldownDaysRemaining(elev){
+    if(!elev.godkendt || !elev.godkendelsesdato) return 0;
+    const days = settings.cooldownDays || 0;
+    if(days <= 0) return 0;
+    const readyAt = new Date(elev.godkendelsesdato + 'T00:00:00');
+    readyAt.setDate(readyAt.getDate() + days);
+    const now = new Date();
+    const msLeft = readyAt.getTime() - now.getTime();
+    if(msLeft <= 0) return 0;
+    return Math.ceil(msLeft / (24*60*60*1000));
+  }
+  function cooldownReadyDateLabel(elev){
+    const days = settings.cooldownDays || 0;
+    const readyAt = new Date(elev.godkendelsesdato + 'T00:00:00');
+    readyAt.setDate(readyAt.getDate() + days);
+    return fmtDate(readyAt.toISOString().slice(0,10));
+  }
+  async function onSetDiscordWebhook(rawUrl){
+    settings.discordWebhookUrl = (rawUrl || '').trim();
+    await saveSettings();
+  }
+  async function sendDiscordNotification(message){
+    if(!settings.discordWebhookUrl) return;
+    try{
+      await fetch(settings.discordWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: message }),
+      });
+    }catch(err){ console.error('Discord-notifikation fejlede', err); }
+  }
+  function daysSince(dateStr){
+    if(!dateStr) return 0;
+    const d = new Date(dateStr + 'T00:00:00');
+    return Math.floor((Date.now() - d.getTime()) / (24*60*60*1000));
+  }
+  function downloadCSV(filename, rows){
+    const csv = rows.map(r => r.map(cell => `"${String(cell ?? '').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ===================== HISTORIK (audit log) =====================
+  let activityLog = [];
+  async function saveActivityLog(){
+    try{ await storage.set(ACTIVITY_LOG_KEY, JSON.stringify(activityLog)); }
+    catch(err){ console.error('Kunne ikke gemme historik', err); }
+  }
+  async function loadActivityLog(){
+    try{
+      const res = await storage.get(ACTIVITY_LOG_KEY);
+      activityLog = JSON.parse(res.value);
+      if(!Array.isArray(activityLog)) activityLog = [];
+    }catch(e){ activityLog = []; }
+  }
+  function logActivity(text){
+    activityLog.unshift({ id: uid(), dato: todayISO(), time: new Date().toISOString(), actor: actorLabel(), text });
+    if(activityLog.length > 200) activityLog.length = 200;
+    saveActivityLog();
+  }
+  function fmtDateTime(iso){
+    if(!iso) return '—';
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const min = String(d.getMinutes()).padStart(2,'0');
+    return `${dd}/${mm} ${hh}:${min}`;
+  }
+
+  // ===================== VIDEREUDDANNELSE-modul =====================
+  const DEFAULT_COURSES = [
+    { navn: 'Akutlæge', beskrivelse: 'Speciallæge i akutmedicin.' },
+    { navn: 'Paramediciner', beskrivelse: 'Avanceret præhospital behandler.' },
+    { navn: 'TEMS', beskrivelse: 'Tactical Emergency Medical Support.' },
+    { navn: 'HEMS', beskrivelse: 'Helicopter Emergency Medical Service.' },
+  ];
+
+  let eduCourses = [];
+
+  function normalizeParticipant(p){
+    if(!p.extraSkills) p.extraSkills = {};
+    if(!p.removedSkills) p.removedSkills = [];
+    if(!p.competencies) p.competencies = {};
+    if(!p.notes) p.notes = [];
+    if(p.elevId === undefined) p.elevId = null;
+    return p;
+  }
+  function normalizeCourse(c){
+    if(!c.participants) c.participants = [];
+    if(!c.phases || c.phases.length === 0) c.phases = [{ key: 'goals', label: 'Mål' }];
+    c.participants = c.participants.map(normalizeParticipant);
+    return c;
+  }
+  function progressOfParticipant(p, course){
+    const skills = course.phases.flatMap(ph => effectiveSkillsForPhase(p, ph));
+    const done = skills.filter(s => p.competencies[s.key] === 'godkendt').length;
+    return { done, total: skills.length, pct: skills.length ? Math.round(done / skills.length * 100) : 0 };
+  }
+  async function saveEdu(silent){
+    try{ await storage.set(EDU_KEY, JSON.stringify(eduCourses)); }
+    catch(err){ console.error('Kunne ikke gemme videreuddannelse', err); if(!silent) alert('Kunne ikke gemme til Firebase. Tjek FIREBASE_DB_URL og din internetforbindelse.'); }
+  }
+  async function loadEdu(){
+    try{
+      const res = await storage.get(EDU_KEY);
+      eduCourses = JSON.parse(res.value).map(normalizeCourse);
+    }catch(e){
+      // Første gang – nøglen findes ikke endnu i arket. Seed standard-uddannelser.
+      eduCourses = DEFAULT_COURSES.map(c => ({ id: uid(), navn: c.navn, beskrivelse: c.beskrivelse, phases: [{ key:'goals', label:'Mål' }], participants: [] }));
+      try{ await saveEdu(true); }catch(e2){ /* ignoreres, prøves igen ved næste gem */ }
+    }
+  }
+  function findCourse(id){ return eduCourses.find(c => c.id === id); }
+  function findParticipant(course, id){ return course.participants.find(p => p.id === id); }
+  function courseStats(course){
+    const personaleQualified = personaleList.filter(p => p.quals.includes(course.id));
+    const directApproved = course.participants.filter(p => p.godkendt).length;
+    return {
+      totalCount: course.participants.length + personaleQualified.length,
+      totalApproved: directApproved + personaleQualified.length,
+      personaleCount: personaleQualified.length,
+    };
+  }
+
+  // ===================== PERSONALE (manuel liste) =====================
+  let personaleList = [];
+
+  function normalizePersonale(p){
+    if(!p.quals) p.quals = [];
+    if(p.spor === undefined) p.spor = '';
+    if(!p.notes) p.notes = [];
+    if(!p.competencies) p.competencies = {};
+    if(!p.extraSkills) p.extraSkills = {};
+    if(!p.removedSkills) p.removedSkills = [];
+    return p;
+  }
+  async function savePersonale(){
+    try{ await storage.set(PERSONALE_KEY, JSON.stringify(personaleList)); }
+    catch(err){ console.error('Kunne ikke gemme personale', err); alert('Kunne ikke gemme til Firebase. Tjek FIREBASE_DB_URL og din internetforbindelse.'); }
+  }
+  async function loadPersonale(){
+    try{
+      const res = await storage.get(PERSONALE_KEY);
+      personaleList = JSON.parse(res.value).map(normalizePersonale);
+    }catch(e){ personaleList = []; }
+  }
+  function findPersonale(id){ return personaleList.find(p => p.id === id); }
+
+  // ===================== DASHBOARD =====================
+  function gatherRecentActivity(limit){
+    const items = [];
+    elever.forEach(e => (e.notes||[]).forEach(n => items.push({ ...n, sourceLabel: 'Elev', sourceName: e.navn })));
+    eduCourses.forEach(c => c.participants.forEach(p => (p.notes||[]).forEach(n => items.push({ ...n, sourceLabel: c.navn, sourceName: p.navn }))));
+    personaleList.forEach(p => (p.notes||[]).forEach(n => items.push({ ...n, sourceLabel: 'Personale', sourceName: p.navn })));
+    return items.sort((a, b) => (b.dato + (b.id||'')).localeCompare(a.dato + (a.id||''))).slice(0, limit);
+  }
+
+  function renderDashboard(){
+    const totalElever = elever.length;
+    const approvedElever = elever.filter(e => e.godkendt).length;
+    const behandlerCount = elever.filter(e => e.spor === 'behandler').length;
+    const laegeCount = elever.filter(e => e.spor === 'laege').length;
+    const noSporCount = totalElever - behandlerCount - laegeCount;
+    const avgProgress = totalElever ? Math.round(elever.reduce((sum, e) => sum + progressOfElev(e).pct, 0) / totalElever) : 0;
+
+    let courseParticipants = 0, courseApproved = 0;
+    eduCourses.forEach(c => { const s = courseStats(c); courseParticipants += s.totalCount; courseApproved += s.totalApproved; });
+
+    let html = `
+      <div class="em-toolbar">
+        <input class="em-search" id="em-global-search" placeholder="🔍 Søg efter navn på tværs af elever, deltagere og personale…"/>
+      </div>
+      <div id="em-global-search-results"></div>
+    `;
+
+    html += `<div class="em-kpi-grid">`;
+    const kpis = [
+      { label:'Elever', value: totalElever, sub: `${approvedElever} godkendt`, color:'var(--amber)' },
+      { label:'Gns. fremgang', value: avgProgress + '%', sub: 'blandt alle elever', color:'var(--green)' },
+      { label:'Videreuddannelse', value: eduCourses.length, sub: `${courseParticipants} deltagere · ${courseApproved} godkendt`, color:'var(--purple)' },
+      { label:'Personale', value: personaleList.length, sub: 'manuelt tilføjet', color:'var(--blue)' },
+    ];
+    kpis.forEach(k => {
+      html += `
+      <div class="em-kpi-card" style="--kpi:${k.color}">
+        <div class="em-kpi-value">${k.value}</div>
+        <div class="em-kpi-label">${escapeHtml(k.label)}</div>
+        <div class="em-kpi-sub">${escapeHtml(k.sub)}</div>
+      </div>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="em-section-title">Spor-fordeling (elever)</div>`;
+    html += `<div class="em-form-panel">`;
+    if(totalElever === 0){
+      html += `<p class="em-form-hint" style="margin:0;">Ingen elever endnu.</p>`;
+    } else {
+      [
+        { label:'Behandler', n: behandlerCount, color:'var(--blue)' },
+        { label:'Læge', n: laegeCount, color:'var(--purple)' },
+        { label:'Ikke valgt', n: noSporCount, color:'var(--text-faint)' },
+      ].forEach(row => {
+        const pct = Math.round(row.n / totalElever * 100);
+        html += `
+        <div class="em-bar-row">
+          <span class="em-bar-label">${escapeHtml(row.label)}</span>
+          <div class="em-bar-track"><div class="em-bar-fill" style="width:${pct}%;background:${row.color}"></div></div>
+          <span class="em-bar-value">${row.n}</span>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+
+    if(canApprove()){
+      const overdueSpor = elever.filter(e => !e.spor && daysSince(e.startdato) > 7);
+      const overdueApproval = elever.filter(e => !e.godkendt && e.spor && daysSince(e.startdato) > 14);
+      html += `<div class="em-section-title">Kræver handling</div>`;
+      if(overdueSpor.length === 0 && overdueApproval.length === 0){
+        html += `<div class="em-empty"><p>✅ Ingen elever kræver opmærksomhed lige nu.</p></div>`;
+      } else {
+        html += `<div class="em-grid">`;
+        overdueSpor.forEach(e => {
+          html += `
+          <div class="em-card" style="--stripe:var(--red)" data-elevid="${e.id}">
+            <p class="em-card-name">${escapeHtml(e.navn)}</p>
+            <p class="em-card-meta">${daysSince(e.startdato)} dage siden start — mangler stadig spor</p>
+          </div>`;
+        });
+        overdueApproval.forEach(e => {
+          html += `
+          <div class="em-card" style="--stripe:var(--amber)" data-elevid="${e.id}">
+            <p class="em-card-name">${escapeHtml(e.navn)}</p>
+            <p class="em-card-meta">${daysSince(e.startdato)} dage siden start — venter på godkendelse</p>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+    }
+
+    html += `<div class="em-section-title">Seneste aktivitet</div>`;
+    if(!canApprove()){
+      html += `<div class="em-empty"><p>🔒 Kun vejledere og admin kan se aktivitetsloggen.</p></div>`;
+    } else {
+      const recent = gatherRecentActivity(8);
+      if(recent.length === 0){
+        html += `<div class="em-empty"><p>Ingen anmærkninger endnu.</p></div>`;
+      } else {
+        recent.forEach(n => {
+          html += `
+          <div class="em-note" style="--stripe:${NOTE_TYPE_COLOR[n.type]||'var(--text-faint)'}">
+            <div class="em-note-top">
+              <span class="em-note-author">${escapeHtml(n.sourceName)}</span>
+              <span class="em-note-type" style="background:color-mix(in srgb, ${NOTE_TYPE_COLOR[n.type]||'#888'} 18%, transparent); color:${NOTE_TYPE_COLOR[n.type]||'var(--text-dim)'}">${escapeHtml(n.type)}</span>
+              <span class="em-note-date">${fmtDate(n.dato)}</span>
+            </div>
+            <p class="em-note-text"><b>${escapeHtml(n.sourceLabel)}</b> — ${escapeHtml(n.text)}</p>
+          </div>`;
+        });
+      }
+    }
+    html += `<div class="em-section-title">Historik</div>`;
+    if(!canApprove()){
+      html += `<div class="em-empty"><p>🔒 Kun vejledere og admin kan se historikken.</p></div>`;
+    } else if(activityLog.length === 0){
+      html += `<div class="em-empty"><p>Ingen registrerede handlinger endnu.</p></div>`;
+    } else {
+      html += `<div class="em-form-panel">`;
+      activityLog.slice(0, 15).forEach(entry => {
+        html += `
+        <div class="em-log-row">
+          <span class="em-log-time">${fmtDateTime(entry.time)}</span>
+          <span class="em-log-text"><b>${escapeHtml(entry.actor)}</b> — ${entry.text.replace(/\*\*(.*?)\*\*/g, (m,p1)=>`<b>${escapeHtml(p1)}</b>`)}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    bodyEl.innerHTML = html;
+    root.querySelectorAll('.em-card[data-elevid]').forEach(card => {
+      card.addEventListener('click', () => {
+        view.section = 'elever'; view.elevMode = 'detail'; view.elevSelectedId = card.dataset.elevid;
+        render();
+      });
+    });
+
+    const searchInput = document.getElementById('em-global-search');
+    searchInput.addEventListener('input', () => renderGlobalSearchResults(searchInput.value));
+  }
+  function renderGlobalSearchResults(query){
+    const q = query.trim().toLowerCase();
+    const resultsEl = document.getElementById('em-global-search-results');
+    if(!q){ resultsEl.innerHTML = ''; return; }
+    const results = [];
+    elever.forEach(e => {
+      if(e.navn.toLowerCase().includes(q)){
+        results.push({ label: e.navn, type: 'Elev', action: () => { view.section='elever'; view.elevMode='detail'; view.elevSelectedId=e.id; render(); } });
+      }
+    });
+    eduCourses.forEach(c => {
+      c.participants.forEach(p => {
+        if(p.navn.toLowerCase().includes(q)){
+          results.push({ label: p.navn, type: c.navn, action: () => { view.section='edu'; view.eduMode='participant'; view.eduSelectedCourseId=c.id; view.eduSelectedParticipantId=p.id; render(); } });
+        }
+      });
+    });
+    personaleList.forEach(p => {
+      if(p.navn.toLowerCase().includes(q)){
+        results.push({ label: p.navn, type: 'Personale', action: () => { view.section='personale'; view.personaleMode='detail'; view.personaleSelectedId=p.id; render(); } });
+      }
+    });
+    if(results.length === 0){
+      resultsEl.innerHTML = `<div class="em-empty"><p>Ingen match for "${escapeHtml(query)}".</p></div>`;
+      return;
+    }
+    resultsEl.innerHTML = `<div class="em-form-panel">` + results.slice(0,10).map((r, i) => `
+      <div class="em-skill-row" data-result-idx="${i}" style="cursor:pointer;">
+        <span class="em-skill-name">${escapeHtml(r.label)}</span>
+        <span class="em-status-badge em-status-nospor">${escapeHtml(r.type)}</span>
+      </div>`).join('') + `</div>`;
+    resultsEl.querySelectorAll('[data-result-idx]').forEach(row => {
+      row.addEventListener('click', () => results[Number(row.dataset.resultIdx)].action());
+    });
+  }
+
+  async function onAddPersonale(){
+    const input = document.getElementById('em-personale-navn-input');
+    const navn = input.value.trim();
+    if(!navn){ input.focus(); return; }
+    const btn = document.getElementById('em-confirm-personale');
+    btn.textContent = 'Gemmer…'; btn.disabled = true;
+    const rec = normalizePersonale({ id: uid(), navn, spor: '', quals: [], notes: [], competencies:{}, extraSkills:{}, removedSkills:[] });
+    personaleList.push(rec);
+    await savePersonale();
+    logActivity(`Tilføjede **${navn}** til personale`);
+    view.personaleShowForm = false; view.personaleMode = 'detail'; view.personaleSelectedId = rec.id;
+    render();
+  }
+  async function onSetPersonaleSpor(rec, sporKey){
+    rec.spor = (rec.spor === sporKey) ? '' : sporKey;
+    await savePersonale();
+    logActivity(rec.spor ? `Satte spor **${TRACKS[sporKey].label}** for **${rec.navn}**` : `Fjernede spor for **${rec.navn}**`);
+    renderPersonaleDetail();
+  }
+  async function onToggleQual(rec, courseId){
+    const idx = rec.quals.indexOf(courseId);
+    const course = findCourse(courseId);
+    if(idx === -1) rec.quals.push(courseId); else rec.quals.splice(idx, 1);
+    await savePersonale();
+    logActivity(`${idx === -1 ? 'Tilføjede' : 'Fjernede'} kvalifikationen **${course ? course.navn : '?'}** for **${rec.navn}**`);
+    renderPersonaleDetail();
+  }
+  async function onDeletePersonale(rec){
+    if(!confirm(`Slet ${rec.navn} permanent fra personalelisten?`)) return;
+    personaleList = personaleList.filter(x => x.id !== rec.id);
+    await savePersonale();
+    logActivity(`Slettede **${rec.navn}** fra personale`);
+    view.personaleMode = 'list'; view.personaleSelectedId = null;
+    render();
+  }
+  function onExportPersonaleCSV(){
+    const rows = [['Navn', 'Spor', 'Uddannelser']];
+    personaleList.forEach(p => {
+      const spor = p.spor ? TRACKS[p.spor].label : '';
+      const quals = eduCourses.filter(c => p.quals.includes(c.id)).map(c => c.navn).join('; ');
+      rows.push([p.navn, spor, quals]);
+    });
+    downloadCSV('personale.csv', rows);
+  }
+  function onExportEleverCSV(){
+    const rows = [['Navn', 'Mentor', 'Startdato', 'Spor', 'Godkendt', 'Godkendelsesdato', 'Fremgang %']];
+    elever.forEach(e => {
+      rows.push([
+        e.navn, e.mentor || '', e.startdato || '',
+        e.spor ? TRACKS[e.spor].label : '',
+        e.godkendt ? 'Ja' : 'Nej',
+        e.godkendelsesdato || '',
+        progressOfElev(e).pct,
+      ]);
+    });
+    downloadCSV('elever.csv', rows);
+  }
+  async function onAddPhase(c){
+    const input = document.getElementById('em-new-phase-input');
+    const label = input.value.trim();
+    if(!label){ input.focus(); return; }
+    c.phases.push({ key: 'phase_' + uid(), label });
+    await saveEdu();
+    renderEduCourseDetail();
+  }
+  async function onRenamePhase(c, phaseKey){
+    const phase = c.phases.find(ph => ph.key === phaseKey);
+    if(!phase) return;
+    const newLabel = prompt('Nyt navn for fasen:', phase.label);
+    if(newLabel === null) return;
+    const trimmed = newLabel.trim();
+    if(!trimmed) return;
+    phase.label = trimmed;
+    await saveEdu();
+    renderEduCourseDetail();
+  }
+
+  // ===================== Redigering af mål INDE i en fase (skabelon-niveau) =====================
+  // Virker på tværs af Elever-faser (Fælles/Behandler/Læge) og Videreuddannelses-kursusfaser.
+  function phaseCtxAttrs(context, scopeOrCourseId, phaseKey){
+    return context === 'elev'
+      ? `data-context="elev" data-scope="${scopeOrCourseId}" data-phase="${phaseKey}"`
+      : `data-context="course" data-course="${scopeOrCourseId}" data-phase="${phaseKey}"`;
+  }
+  function resolvePhaseCtx(btn){
+    const context = btn.dataset.context;
+    const phaseKey = btn.dataset.phase;
+    if(context === 'elev'){
+      const scope = btn.dataset.scope;
+      const phase = elevTemplate[scope] ? elevTemplate[scope].find(p => p.key === phaseKey) : null;
+      return {
+        phase, saveFn: saveElevTemplate,
+        cleanup: (skillKey) => { elever.forEach(e => { if(e.competencies) delete e.competencies[skillKey]; }); saveElever(); },
+      };
+    }
+    const course = findCourse(btn.dataset.course);
+    const phase = course ? course.phases.find(p => p.key === phaseKey) : null;
+    return {
+      phase, saveFn: saveEdu,
+      cleanup: (skillKey) => { if(course) course.participants.forEach(p => { if(p.competencies) delete p.competencies[skillKey]; }); },
+    };
+  }
+  function renderPhaseSkillsEditor(phase, context, scopeOrCourseId){
+    const attrs = phaseCtxAttrs(context, scopeOrCourseId, phase.key);
+    let html = `<div class="em-phase-skills-editor">`;
+    const skills = phase.skills || [];
+    if(skills.length === 0){
+      html += `<p class="em-tskill-empty">Ingen faste mål i denne fase endnu.</p>`;
+    }
+    skills.forEach(s => {
+      html += `
+      <div class="em-tskill-row">
+        <span>${escapeHtml(s.label)}</span>
+        <div class="em-tskill-actions">
+          <button class="em-tskill-edit" ${attrs} data-skill="${s.key}" title="Omdøb mål">✎</button>
+          <button class="em-tskill-remove" ${attrs} data-skill="${s.key}" title="Fjern mål">×</button>
+        </div>
+      </div>`;
+    });
+    html += `
+      <div class="em-goal-add-row" style="border-top:none;padding-top:6px;margin-top:4px;">
+        <input class="em-goal-add-input em-tskill-add-input" placeholder="Tilføj mål til fasen…"/>
+        <button class="em-btn em-btn-ghost em-tskill-add-btn" ${attrs}>+ Tilføj mål</button>
+      </div>`;
+    html += `</div>`;
+    return html;
+  }
+  async function onTskillAdd(btn){
+    const { phase, saveFn } = resolvePhaseCtx(btn);
+    if(!phase) return;
+    const container = btn.closest('.em-phase-skills-editor');
+    const input = container.querySelector('.em-tskill-add-input');
+    const label = (input.value || '').trim();
+    if(!label){ input.focus(); return; }
+    if(!phase.skills) phase.skills = [];
+    phase.skills.push({ key: 'tskill_' + uid(), label });
+    await saveFn();
+    render();
+  }
+  async function onTskillRename(btn){
+    const { phase, saveFn } = resolvePhaseCtx(btn);
+    if(!phase) return;
+    const skill = (phase.skills || []).find(s => s.key === btn.dataset.skill);
+    if(!skill) return;
+    const val = prompt('Nyt navn for målet:', skill.label);
+    if(val === null) return;
+    const trimmed = val.trim();
+    if(!trimmed) return;
+    skill.label = trimmed;
+    await saveFn();
+    render();
+  }
+  async function onTskillRemove(btn){
+    const { phase, saveFn, cleanup } = resolvePhaseCtx(btn);
+    if(!phase) return;
+    if(!confirm('Fjern dette mål fra fasen? Det fjernes for alle.')) return;
+    const skillKey = btn.dataset.skill;
+    phase.skills = (phase.skills || []).filter(s => s.key !== skillKey);
+    if(cleanup) cleanup(skillKey);
+    await saveFn();
+    render();
+  }
+  function attachPhaseSkillEditorListeners(){
+    root.querySelectorAll('.em-tskill-edit').forEach(btn => btn.addEventListener('click', () => onTskillRename(btn)));
+    root.querySelectorAll('.em-tskill-remove').forEach(btn => btn.addEventListener('click', () => onTskillRemove(btn)));
+    root.querySelectorAll('.em-tskill-add-btn').forEach(btn => btn.addEventListener('click', () => onTskillAdd(btn)));
+    root.querySelectorAll('.em-tskill-add-input').forEach(inp => {
+      inp.addEventListener('keydown', ev => {
+        if(ev.key === 'Enter'){ onTskillAdd(inp.closest('.em-phase-skills-editor').querySelector('.em-tskill-add-btn')); }
+      });
+    });
+  }
+
+  async function onRemovePhase(c, phaseKey){
+    if(c.phases.length <= 1){ alert('Der skal være mindst én fase.'); return; }
+    if(!confirm('Fjern denne fase? Alle mål under den fjernes for alle deltagere.')) return;
+    c.phases = c.phases.filter(ph => ph.key !== phaseKey);
+    c.participants.forEach(p => {
+      if(p.extraSkills) delete p.extraSkills[phaseKey];
+      Object.keys(p.competencies).forEach(k => {
+        if(k.startsWith('custom_' + phaseKey + '_')) delete p.competencies[k];
+      });
+    });
+    await saveEdu();
+    renderEduCourseDetail();
+  }
+
+
+  // ===================== View-state =====================
+  let view = {
+    section: 'dashboard',
+    elevMode: 'list', elevSelectedId: null, elevShowForm: false, elevSearch: '',
+    eduMode: 'courses', eduSelectedCourseId: null, eduSelectedParticipantId: null,
+    eduShowCourseForm: false, eduShowParticipantForm: false, eduSearch: '',
+    personaleMode: 'list', personaleSelectedId: null, personaleShowForm: false, personaleSearch: '',
+  };
+
+  function triggerFade(){
+    bodyEl.classList.remove('em-fade');
+    void bodyEl.offsetWidth;
+    bodyEl.classList.add('em-fade');
+  }
+
+  // ===================== Top-level render =====================
+  function render(){
+    tabsEl.querySelectorAll('.em-tab').forEach(t => t.classList.toggle('active', t.dataset.section === view.section));
+    if(view.section === 'dashboard'){
+      countPill.textContent = 'Overblik';
+      subtitle.textContent = 'DASHBOARD';
+      renderDashboard();
+    } else if(view.section === 'elever'){
+      countPill.textContent = elever.length + (elever.length === 1 ? ' elev' : ' elever');
+      subtitle.textContent = view.elevMode === 'detail' ? 'ELEVPROFIL' : 'PRÆHOSPITAL OPLÆRING';
+      if(view.elevMode === 'list') renderElevList();
+      else renderElevDetail();
+    } else if(view.section === 'edu'){
+      countPill.textContent = eduCourses.length + (eduCourses.length === 1 ? ' uddannelse' : ' uddannelser');
+      if(view.eduMode === 'courses'){ subtitle.textContent = 'VIDEREUDDANNELSE'; renderEduCourses(); }
+      else if(view.eduMode === 'course'){ subtitle.textContent = 'UDDANNELSE'; renderEduCourseDetail(); }
+      else { subtitle.textContent = 'DELTAGERPROFIL'; renderEduParticipantDetail(); }
+    } else {
+      countPill.textContent = personaleList.length + (personaleList.length === 1 ? ' tilføjet' : ' tilføjet');
+      if(view.personaleMode === 'list'){ subtitle.textContent = 'ALLE UDDANNEDE'; renderPersonale(); }
+      else { subtitle.textContent = 'PERSONALEPROFIL'; renderPersonaleDetail(); }
+    }
+    triggerFade();
+  }
+  tabsEl.querySelectorAll('.em-tab').forEach(t => {
+    t.addEventListener('click', () => { view.section = t.dataset.section; render(); });
+  });
+
+  // ===================== ELEVER: liste =====================
+  function renderElevList(){
+    const q = view.elevSearch.trim().toLowerCase();
+    const filtered = elever.filter(e => !q || e.navn.toLowerCase().includes(q) || (e.mentor||'').toLowerCase().includes(q));
+
+    let html = `
+      <div class="em-toolbar">
+        <input class="em-search" id="em-search-input" placeholder="Søg efter elev eller mentor…" value="${escapeHtml(view.elevSearch)}"/>
+        ${isAdmin() ? `<button class="em-btn em-btn-ghost" id="em-export-elever-btn">⬇ Eksportér CSV</button>` : ''}
+        ${canApprove() ? `<button class="em-btn em-btn-primary" id="em-add-btn">+ Tilføj elev</button>` : ''}
+      </div>
+    `;
+
+    if(view.elevShowForm){
+      html += `
+      <div class="em-form-panel">
+        <p class="em-form-title">Ny elev</p>
+        <p class="em-form-hint">Alle nye elever starter fælles i uge 1 (dag 1-7). Fra dag 8 vælger de spor: Behandler eller Læge.</p>
+        <div class="em-form-row">
+          <div class="em-field"><label>Navn</label><input id="em-f-navn" placeholder="Fx Jane Doe"/></div>
+          <div class="em-field"><label>Mentor</label><input id="em-f-mentor" placeholder="Fx John Smith"/></div>
+          <div class="em-field"><label>Startdato</label><input id="em-f-dato" type="date" value="${todayISO()}"/></div>
+        </div>
+        <div class="em-form-actions">
+          <button class="em-btn em-btn-ghost" id="em-cancel-add">Annuller</button>
+          <button class="em-btn em-btn-primary" id="em-confirm-add">Tilføj elev</button>
+        </div>
+      </div>`;
+    }
+
+    if(elever.length === 0){
+      html += `<div class="em-empty"><h3>Ingen elever endnu</h3><p>Klik "+ Tilføj elev" for at oprette den første.</p></div>`;
+    } else if(filtered.length === 0){
+      html += `<div class="em-empty"><h3>Ingen match</h3><p>Prøv en anden søgning.</p></div>`;
+    } else {
+      html += `<div class="em-grid">`;
+      filtered.forEach(e => {
+        const prog = progressOfElev(e);
+        const stripe = e.godkendt ? 'var(--green)' : e.spor ? (e.spor==='behandler'?'var(--blue)':'var(--purple)') : 'var(--amber)';
+        const sporBadge = e.spor
+          ? `<span class="em-status-badge ${e.spor==='behandler'?'em-status-behandler':'em-status-laege'}">${TRACKS[e.spor].label}</span>`
+          : `<span class="em-status-badge em-status-nospor">Spor ikke valgt</span>`;
+        html += `
+        <div class="em-card" style="--stripe:${stripe}" data-id="${e.id}">
+          <p class="em-card-name">${escapeHtml(e.navn)}</p>
+          <p class="em-card-meta">Mentor: ${escapeHtml(e.mentor||'—')}<br/>Start: ${fmtDate(e.startdato)}</p>
+          <div class="em-progress-row">
+            <div class="em-progress-track"><div class="em-progress-fill" style="width:${prog.pct}%"></div></div>
+            <div class="em-progress-label">${prog.done}/${prog.total}</div>
+          </div>
+          <div class="em-card-badges">
+            <span class="em-status-badge ${e.godkendt ? 'em-status-approved' : 'em-status-progress'}">${e.godkendt ? '✓ Godkendt' : 'Under oplæring'}</span>
+            ${sporBadge}
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    if(isAdmin()){
+      html += `<div class="em-section-title">Admin: Faser for elever</div>`;
+      html += `<div class="em-form-panel">`;
+      html += `<p class="em-form-hint">Styr hvilke faser der findes i elevforløbet. Fælles gælder uge 1. Behandler/Læge gælder fra spor-valget i uge 2.</p>`;
+      [['common','Fælles (Uge 1)'], ['behandler','Behandler (Uge 2)'], ['laege','Læge (Uge 2)']].forEach(([scope, scopeLabel]) => {
+        html += `<p style="font-size:10.5px;font-family:var(--mono);color:var(--text-dim);text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 6px;">${scopeLabel}</p>`;
+        elevTemplate[scope].forEach(ph => {
+          html += `<div class="em-phase-block">`;
+          html += `<span class="em-phase-chip">${escapeHtml(ph.label)}<button class="em-phase-edit" data-scope="${scope}" data-phase="${ph.key}" title="Omdøb fase">✎</button><button class="em-ephase-remove" data-scope="${scope}" data-phase="${ph.key}" title="Fjern fase">×</button></span>`;
+          html += renderPhaseSkillsEditor(ph, 'elev', scope);
+          html += `</div>`;
+        });
+        html += `
+        <div class="em-goal-add-row" style="border-top:none;padding-top:0;margin-top:0;">
+          <input class="em-goal-add-input" id="em-new-ephase-input-${scope}" placeholder="Ny fase for ${escapeHtml(scopeLabel)}…"/>
+          <button class="em-btn em-btn-ghost em-add-ephase-btn" data-scope="${scope}">+ Tilføj fase</button>
+        </div>`;
+      });
+      html += `<p style="font-size:10.5px;font-family:var(--mono);color:var(--text-dim);text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 6px;">Karens efter godkendelse</p>`;
+      html += `<p class="em-form-hint">Antal dage en godkendt elev skal vente, før de kan tilmeldes en videreuddannelse.</p>`;
+      html += `
+      <div class="em-form-row em-2col">
+        <div class="em-field"><label>Karensdage</label><input type="number" min="0" id="em-cooldown-input" value="${settings.cooldownDays || 0}"/></div>
+      </div>`;
+      html += `<p style="font-size:10.5px;font-family:var(--mono);color:var(--text-dim);text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 6px;">Discord-notifikationer</p>`;
+      html += `<p class="em-form-hint">Indsæt en Discord webhook-URL, så der automatisk postes en besked i jeres server når en elev eller deltager bliver godkendt.</p>`;
+      html += `
+      <div class="em-form-row em-2col">
+        <div class="em-field"><label>Webhook URL</label><input type="text" id="em-discord-webhook-input" value="${escapeHtml(settings.discordWebhookUrl || '')}" placeholder="https://discord.com/api/webhooks/…"/></div>
+      </div>`;
+      html += `</div>`;
+    }
+
+    html += `<p class="em-hint">Data deles med alle der bruger dette skema.</p>`;
+    bodyEl.innerHTML = html;
+
+    document.getElementById('em-search-input').addEventListener('input', ev => {
+      view.elevSearch = ev.target.value; renderElevList();
+      const inp = document.getElementById('em-search-input');
+      inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+    });
+    const addBtn = document.getElementById('em-add-btn');
+    if(addBtn) addBtn.addEventListener('click', () => { view.elevShowForm = true; renderElevList(); });
+    const exportElevBtn = document.getElementById('em-export-elever-btn');
+    if(exportElevBtn) exportElevBtn.addEventListener('click', onExportEleverCSV);
+    if(view.elevShowForm){
+      document.getElementById('em-cancel-add').addEventListener('click', () => { view.elevShowForm = false; renderElevList(); });
+      document.getElementById('em-confirm-add').addEventListener('click', onAddElev);
+    }
+    root.querySelectorAll('.em-card').forEach(card => {
+      card.addEventListener('click', () => { view.elevMode='detail'; view.elevSelectedId = card.dataset.id; render(); });
+    });
+    if(isAdmin()){
+      root.querySelectorAll('.em-ephase-remove').forEach(btn => {
+        btn.addEventListener('click', () => onRemoveElevPhase(btn.dataset.scope, btn.dataset.phase));
+      });
+      root.querySelectorAll('.em-phase-edit').forEach(btn => {
+        btn.addEventListener('click', () => onRenameElevPhase(btn.dataset.scope, btn.dataset.phase));
+      });
+      root.querySelectorAll('.em-add-ephase-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const input = document.getElementById('em-new-ephase-input-' + btn.dataset.scope);
+          onAddElevPhase(btn.dataset.scope, input.value);
+        });
+      });
+      const cooldownInput = document.getElementById('em-cooldown-input');
+      if(cooldownInput){
+        cooldownInput.addEventListener('change', () => onSetCooldownDays(cooldownInput.value));
+      }
+      const webhookInput = document.getElementById('em-discord-webhook-input');
+      if(webhookInput){
+        webhookInput.addEventListener('change', () => onSetDiscordWebhook(webhookInput.value));
+      }
+      attachPhaseSkillEditorListeners();
+    }
+  }
+
+  async function onAddElev(){
+    const navn = document.getElementById('em-f-navn').value.trim();
+    const mentor = document.getElementById('em-f-mentor').value.trim();
+    const dato = document.getElementById('em-f-dato').value || todayISO();
+    if(!navn){ document.getElementById('em-f-navn').focus(); return; }
+    const btn = document.getElementById('em-confirm-add');
+    btn.textContent = 'Gemmer…'; btn.disabled = true;
+    const competencies = {}; elevTemplate.common.flatMap(p => p.skills.map(s => s.key)).forEach(k => competencies[k] = '');
+    const newElev = { id: uid(), navn, mentor, startdato: dato, spor: '', competencies, extraSkills: {}, removedSkills: [], notes: [], godkendt:false, godkendelsesdato:'' };
+    elever.push(newElev);
+    await saveElever();
+    logActivity(`Oprettede elev **${navn}**`);
+    view.elevShowForm = false; view.elevMode = 'detail'; view.elevSelectedId = newElev.id;
+    render();
+  }
+
+  // ===================== ELEVER: detalje =====================
+  function renderElevDetail(){
+    const e = findElev(view.elevSelectedId);
+    if(!e){ view.elevMode='list'; return renderElevList(); }
+    const prog = progressOfElev(e);
+
+    let html = `<button class="em-back" id="em-back-btn">← Tilbage til elever</button>`;
+    html += `
+    <div class="em-detail-header">
+      <div>
+        <p class="em-detail-name">${escapeHtml(e.navn)}</p>
+        <div class="em-detail-meta">
+          <span>Mentor: <b>${escapeHtml(e.mentor||'—')}</b></span>
+          <span>Startdato: <b>${fmtDate(e.startdato)}</b></span>
+          <span>Fremgang: <b>${prog.done}/${prog.total} (${prog.pct}%)</b></span>
+          <span>Spor: <b>${e.spor ? TRACKS[e.spor].label : 'Ikke valgt endnu'}</b></span>
+        </div>
+      </div>
+      <div class="em-approve-block">
+        <div class="em-approve-toggle">
+          <div>
+            <div style="font-size:12px;font-weight:600;">Godkendt elev</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-faint);">${e.godkendt ? fmtDate(e.godkendelsesdato) : (e.spor ? (canApprove() ? 'Endnu ikke' : 'Kun vejledere kan ændre') : 'Vælg spor først')}</div>
+          </div>
+          <div class="em-switch ${e.godkendt?'on':''} ${(e.spor && canApprove())?'':'disabled'}" id="em-approve-switch"></div>
+        </div>
+        ${canApprove() ? `<button class="em-btn em-btn-ghost" id="em-edit-elev-btn" style="margin-top:8px;">✎ Rediger info</button>` : ''}
+        ${isAdmin() ? `<button class="em-btn em-btn-danger" id="em-delete-btn" style="margin-top:8px;">Slet elev</button>` : ''}
+      </div>
+    </div>`;
+
+    html += `<div class="em-section-title">Uge 1 · Fælles for alle</div>`;
+    elevTemplate.common.forEach(phase => { html += renderPhase(phase, e); });
+
+    html += `
+    <div class="em-milestone">
+      <span class="em-milestone-badge ${e.spor ? 'done' : ''}">
+        <span class="em-milestone-dot"></span>
+        Midtvejs · Dag 8 · Valg af retning
+      </span>
+    </div>`;
+    if(!e.spor){
+      if(canApprove()){
+        html += `
+        <div class="em-spor-panel">
+          <p class="em-spor-lead">Eleven har gennemført den fælles uge 1. Vælg hvilket spor eleven fortsætter på:</p>
+          <div class="em-spor-options">
+            <button class="em-spor-option behandler" data-spor="behandler">
+              <h4>${TRACKS.behandler.label} <span style="color:var(--text-faint);font-weight:400;">· ${TRACKS.behandler.sub}</span></h4>
+              <p>${TRACKS.behandler.desc}</p>
+            </button>
+            <button class="em-spor-option laege" data-spor="laege">
+              <h4>${TRACKS.laege.label} <span style="color:var(--text-faint);font-weight:400;">· ${TRACKS.laege.sub}</span></h4>
+              <p>${TRACKS.laege.desc}</p>
+            </button>
+          </div>
+        </div>`;
+      }
+      html += `<div class="em-locked">Kompetencer for dag 8-14 låses op, når spor er valgt${canApprove() ? '' : ' (kun admin eller vejleder kan vælge spor)'}.</div>`;
+    } else {
+      html += `<div class="em-section-title">Uge 2 · ${TRACKS[e.spor].label}</div>`;
+      html += `
+      <div class="em-spor-chosen ${TRACKS[e.spor].css}">
+        <span class="em-spor-chosen-label">${TRACKS[e.spor].label} · ${TRACKS[e.spor].sub}</span>
+        ${canApprove() ? `<button class="em-btn em-btn-ghost" id="em-change-spor-btn">Skift spor</button>` : ''}
+      </div>`;
+      elevTemplate[e.spor].forEach(phase => { html += renderPhase(phase, e); });
+    }
+
+    html += renderNotesSection(e);
+    bodyEl.innerHTML = html;
+
+    document.getElementById('em-back-btn').addEventListener('click', () => { view.elevMode='list'; render(); });
+    const approveSwitch = document.getElementById('em-approve-switch');
+    approveSwitch.addEventListener('click', () => { if(e.spor && canApprove()) toggleApprove(e, saveElever, renderElevDetail, `🎉 **${e.navn}** er nu godkendt som **${TRACKS[e.spor].label}**!`); });
+    const delBtn = document.getElementById('em-delete-btn');
+    if(delBtn) delBtn.addEventListener('click', () => onDeleteElev(e));
+    const editBtn = document.getElementById('em-edit-elev-btn');
+    if(editBtn) editBtn.addEventListener('click', () => onEditElevInfo(e));
+    root.querySelectorAll('.em-spor-option').forEach(btn => {
+      btn.addEventListener('click', () => onChooseSpor(e, btn.dataset.spor));
+    });
+    const changeSporBtn = document.getElementById('em-change-spor-btn');
+    if(changeSporBtn) changeSporBtn.addEventListener('click', () => onChangeSpor(e));
+
+    attachGoalListeners(e, saveElever, renderElevDetail);
+    attachNoteListener(e, saveElever, renderElevDetail);
+  }
+
+  async function onChooseSpor(e, sporKey){
+    e.spor = sporKey;
+    elevTemplate[sporKey].forEach(phase => {
+      phase.skills.forEach(s => { if(!(s.key in e.competencies)) e.competencies[s.key] = ''; });
+    });
+    await saveElever();
+    logActivity(`**${e.navn}** valgte spor: ${TRACKS[sporKey].label}`);
+    renderElevDetail();
+  }
+  async function onChangeSpor(e){
+    if(!confirm(`Skift spor for ${e.navn}? Tidligere registreret fremgang på nuværende spor gemmes, men skjules indtil sporet vælges igen.`)) return;
+    e.spor = '';
+    await saveElever();
+    logActivity(`Nulstillede spor for **${e.navn}**`);
+    renderElevDetail();
+  }
+  async function onDeleteElev(e){
+    if(!confirm(`Slet ${e.navn} permanent? Dette kan ikke fortrydes.`)) return;
+    elever = elever.filter(x => x.id !== e.id);
+    await saveElever();
+    logActivity(`Slettede elev **${e.navn}**`);
+    view.elevMode = 'list'; view.elevSelectedId = null;
+    render();
+  }
+  async function onEditElevInfo(e){
+    const navn = prompt('Navn:', e.navn);
+    if(navn === null) return;
+    const mentor = prompt('Mentor:', e.mentor || '');
+    if(mentor === null) return;
+    const dato = prompt('Startdato (ÅÅÅÅ-MM-DD):', e.startdato || '');
+    if(dato === null) return;
+    if(navn.trim()) e.navn = navn.trim();
+    e.mentor = mentor.trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(dato.trim())) e.startdato = dato.trim();
+    await saveElever();
+    logActivity(`Redigerede oplysninger for **${e.navn}**`);
+    renderElevDetail();
+  }
+
+  // ===================== VIDEREUDDANNELSE: kursusoversigt =====================
+  function renderEduCourses(){
+    let html = `
+      <div class="em-toolbar">
+        <input class="em-search" id="em-edu-search-input" placeholder="Søg efter uddannelse…" value="${escapeHtml(view.eduSearch)}"/>
+        ${isAdmin() ? `<button class="em-btn em-btn-primary" id="em-add-course-btn">+ Tilføj uddannelse</button>` : ''}
+      </div>`;
+
+    if(view.eduShowCourseForm){
+      html += `
+      <div class="em-form-panel">
+        <p class="em-form-title">Ny uddannelse</p>
+        <p class="em-form-hint">Fx Akutlæge, Paramediciner, TEMS, HEMS — eller noget helt andet.</p>
+        <div class="em-form-row em-2col">
+          <div class="em-field"><label>Navn</label><input id="em-c-navn" placeholder="Fx HEMS"/></div>
+          <div class="em-field"><label>Beskrivelse (valgfri)</label><input id="em-c-beskrivelse" placeholder="Kort beskrivelse"/></div>
+        </div>
+        <div class="em-form-actions">
+          <button class="em-btn em-btn-ghost" id="em-cancel-course">Annuller</button>
+          <button class="em-btn em-btn-primary" id="em-confirm-course">Tilføj uddannelse</button>
+        </div>
+      </div>`;
+    }
+
+    const q = view.eduSearch.trim().toLowerCase();
+    const filtered = eduCourses.filter(c => !q || c.navn.toLowerCase().includes(q));
+
+    if(eduCourses.length === 0){
+      html += `<div class="em-empty"><h3>Ingen uddannelser endnu</h3><p>Klik "+ Tilføj uddannelse" for at oprette den første.</p></div>`;
+    } else if(filtered.length === 0){
+      html += `<div class="em-empty"><h3>Ingen match</h3><p>Prøv en anden søgning.</p></div>`;
+    } else {
+      html += `<div class="em-grid">`;
+      filtered.forEach(c => {
+        const stats = courseStats(c);
+        html += `
+        <div class="em-card" style="--stripe:var(--purple)" data-id="${c.id}">
+          <p class="em-card-name">${escapeHtml(c.navn)}</p>
+          <p class="em-card-meta">${escapeHtml(c.beskrivelse || 'Ingen beskrivelse')}</p>
+          <div class="em-card-badges">
+            <span class="em-status-badge em-status-course">${stats.totalCount} deltager${stats.totalCount===1?'':'e'}</span>
+            <span class="em-status-badge em-status-approved">${stats.totalApproved} godkendt${stats.totalApproved===1?'':'e'}</span>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    html += `<p class="em-hint">Data deles med alle der bruger dette skema.</p>`;
+    bodyEl.innerHTML = html;
+
+    document.getElementById('em-edu-search-input').addEventListener('input', ev => {
+      view.eduSearch = ev.target.value; renderEduCourses();
+      const inp = document.getElementById('em-edu-search-input');
+      inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+    });
+    const addCourseBtn = document.getElementById('em-add-course-btn');
+    if(addCourseBtn) addCourseBtn.addEventListener('click', () => { view.eduShowCourseForm = true; renderEduCourses(); });
+    if(view.eduShowCourseForm){
+      document.getElementById('em-cancel-course').addEventListener('click', () => { view.eduShowCourseForm = false; renderEduCourses(); });
+      document.getElementById('em-confirm-course').addEventListener('click', onAddCourse);
+    }
+    root.querySelectorAll('.em-card').forEach(card => {
+      card.addEventListener('click', () => { view.eduMode='course'; view.eduSelectedCourseId = card.dataset.id; render(); });
+    });
+  }
+
+  async function onAddCourse(){
+    const navn = document.getElementById('em-c-navn').value.trim();
+    const beskrivelse = document.getElementById('em-c-beskrivelse').value.trim();
+    if(!navn){ document.getElementById('em-c-navn').focus(); return; }
+    const btn = document.getElementById('em-confirm-course');
+    btn.textContent = 'Gemmer…'; btn.disabled = true;
+    eduCourses.push({ id: uid(), navn, beskrivelse, phases: [{ key:'goals', label:'Mål' }], participants: [] });
+    await saveEdu();
+    logActivity(`Oprettede uddannelsen **${navn}**`);
+    view.eduShowCourseForm = false;
+    render();
+  }
+
+  // ===================== VIDEREUDDANNELSE: deltagere i et kursus =====================
+  function renderEduCourseDetail(){
+    const c = findCourse(view.eduSelectedCourseId);
+    if(!c){ view.eduMode = 'courses'; return renderEduCourses(); }
+    const stats = courseStats(c);
+
+    let html = `<button class="em-back" id="em-back-btn">← Tilbage til uddannelser</button>`;
+    html += `
+    <div class="em-detail-header">
+      <div>
+        <p class="em-detail-name">${escapeHtml(c.navn)}</p>
+        <p class="em-detail-desc">${escapeHtml(c.beskrivelse || '')}</p>
+        <div class="em-detail-meta">
+          <span>Deltagere: <b>${stats.totalCount}</b></span>
+          <span>Godkendt: <b>${stats.totalApproved}</b></span>
+          ${stats.personaleCount > 0 ? `<span>Heraf fra Personale: <b>${stats.personaleCount}</b></span>` : ''}
+        </div>
+      </div>
+      <div class="em-approve-block">
+        ${isAdmin() ? `<button class="em-btn em-btn-danger" id="em-delete-course-btn">Slet uddannelse</button>` : ''}
+      </div>
+    </div>`;
+
+    if(isAdmin()){
+      html += `<div class="em-section-title">Faser / opgaver for ${escapeHtml(c.navn)}</div>`;
+      html += `<div class="em-form-panel">`;
+      html += `<p class="em-form-hint">Opret faser (fx "Uge 1", "Teori", "Eksamen") — under hver deltager kan du så tilføje konkrete mål/opgaver i disse faser.</p>`;
+      if(c.phases.length){
+        c.phases.forEach(ph => {
+          html += `<div class="em-phase-block">`;
+          html += `<span class="em-phase-chip">${escapeHtml(ph.label)}<button class="em-phase-edit" data-phase="${ph.key}" title="Omdøb fase">✎</button><button class="em-phase-remove" data-phase="${ph.key}" title="Fjern fase">×</button></span>`;
+          html += renderPhaseSkillsEditor(ph, 'course', c.id);
+          html += `</div>`;
+        });
+      }
+      html += `
+        <div class="em-goal-add-row" style="border-top:none;padding-top:0;margin-top:0;">
+          <input class="em-goal-add-input" id="em-new-phase-input" placeholder="Ny fase, fx 'Uge 1' eller 'Eksamen'…"/>
+          <button class="em-btn em-btn-ghost" id="em-add-phase-btn">+ Tilføj fase</button>
+        </div>`;
+      html += `</div>`;
+    }
+
+    html += `
+      <div class="em-toolbar">
+        <div></div>
+        ${isAdmin() ? `<button class="em-btn em-btn-primary" id="em-add-participant-btn">+ Tilføj deltager</button>` : ''}
+      </div>`;
+
+    if(view.eduShowParticipantForm){
+      const approved = elever.filter(e => e.godkendt);
+      const alreadyAdded = new Set(c.participants.filter(p => p.elevId).map(p => p.elevId));
+      const availableApproved = approved.filter(e => !alreadyAdded.has(e.id));
+      html += `
+      <div class="em-form-panel">
+        <p class="em-form-title">Ny deltager på ${escapeHtml(c.navn)}</p>
+        <p class="em-form-hint">Kun elever der er markeret "Godkendt" i Elever-fanen kan vælges her${availableApproved.length === 0 ? ' — der er ingen tilgængelige lige nu' : ''}${settings.cooldownDays > 0 ? ` · Karens: ${settings.cooldownDays} dage efter godkendelse` : ''}.</p>
+        <div class="em-form-row em-2col">
+          <div class="em-field">
+            <label>Godkendt elev</label>
+            <select id="em-p-elev-select">
+              <option value="">— Vælg godkendt elev —</option>
+              ${availableApproved.map(e => {
+                const left = cooldownDaysRemaining(e);
+                const suffix = left > 0 ? ` (karens: ${left} ${left===1?'dag':'dage'} tilbage)` : '';
+                return `<option value="${e.id}">${escapeHtml(e.navn)}${e.spor ? ' · ' + TRACKS[e.spor].label : ''}${suffix}</option>`;
+              }).join('')}
+              <option value="__manual__">Andet (ikke tidligere elev)</option>
+            </select>
+            <p id="em-cooldown-hint" style="font-size:11.5px;color:var(--red);margin:6px 0 0;display:none;"></p>
+          </div>
+          <div class="em-field" id="em-p-navn-wrap" style="display:none;">
+            <label>Navn</label><input id="em-p-navn" placeholder="Fx Jane Doe"/>
+          </div>
+        </div>
+        <div class="em-form-row em-2col">
+          <div class="em-field"><label>Instruktør</label><input id="em-p-instruktor" placeholder="Fx John Smith"/></div>
+          <div class="em-field"><label>Startdato</label><input id="em-p-dato" type="date" value="${todayISO()}"/></div>
+        </div>
+        <div class="em-form-actions">
+          <button class="em-btn em-btn-ghost" id="em-cancel-participant">Annuller</button>
+          <button class="em-btn em-btn-primary" id="em-confirm-participant">Tilføj deltager</button>
+        </div>
+      </div>`;
+    }
+
+    if(c.participants.length === 0){
+      html += `<div class="em-empty"><h3>Ingen deltagere endnu</h3><p>Klik "+ Tilføj deltager" for at oprette den første.</p></div>`;
+    } else {
+      html += `<div class="em-grid">`;
+      c.participants.forEach(p => {
+        const prog = progressOfParticipant(p, c);
+        const stripe = p.godkendt ? 'var(--green)' : 'var(--purple)';
+        const srcElev = p.elevId ? findElev(p.elevId) : null;
+        html += `
+        <div class="em-card" style="--stripe:${stripe}" data-id="${p.id}">
+          <p class="em-card-name">${escapeHtml(p.navn)}</p>
+          <p class="em-card-meta">Instruktør: ${escapeHtml(p.instruktor||'—')}<br/>Start: ${fmtDate(p.startdato)}</p>
+          <div class="em-progress-row">
+            <div class="em-progress-track"><div class="em-progress-fill" style="width:${prog.pct}%"></div></div>
+            <div class="em-progress-label">${prog.done}/${prog.total}</div>
+          </div>
+          <div class="em-card-badges">
+            <span class="em-status-badge ${p.godkendt ? 'em-status-approved' : 'em-status-progress'}">${p.godkendt ? '✓ Godkendt' : 'I gang'}</span>
+            ${srcElev ? `<span class="em-status-badge em-status-nospor">Fra elevforløb${srcElev.spor ? ' · '+TRACKS[srcElev.spor].label : ''}</span>` : ''}
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    bodyEl.innerHTML = html;
+
+    document.getElementById('em-back-btn').addEventListener('click', () => { view.eduMode='courses'; render(); });
+    const delCourseBtn = document.getElementById('em-delete-course-btn');
+    if(delCourseBtn) delCourseBtn.addEventListener('click', () => onDeleteCourse(c));
+    const addPhaseBtn = document.getElementById('em-add-phase-btn');
+    if(addPhaseBtn){
+      addPhaseBtn.addEventListener('click', () => onAddPhase(c));
+      document.getElementById('em-new-phase-input').addEventListener('keydown', ev => {
+        if(ev.key === 'Enter'){ onAddPhase(c); }
+      });
+    }
+    root.querySelectorAll('.em-phase-remove').forEach(btn => {
+      btn.addEventListener('click', () => onRemovePhase(c, btn.dataset.phase));
+    });
+    root.querySelectorAll('.em-phase-edit').forEach(btn => {
+      btn.addEventListener('click', () => onRenamePhase(c, btn.dataset.phase));
+    });
+    attachPhaseSkillEditorListeners();
+    const addParticipantBtn = document.getElementById('em-add-participant-btn');
+    if(addParticipantBtn) addParticipantBtn.addEventListener('click', () => { view.eduShowParticipantForm = true; renderEduCourseDetail(); });
+    if(view.eduShowParticipantForm){
+      document.getElementById('em-cancel-participant').addEventListener('click', () => { view.eduShowParticipantForm = false; renderEduCourseDetail(); });
+      document.getElementById('em-confirm-participant').addEventListener('click', () => onAddParticipant(c));
+      const elevSelect = document.getElementById('em-p-elev-select');
+      elevSelect.addEventListener('change', () => {
+        const wrap = document.getElementById('em-p-navn-wrap');
+        wrap.style.display = elevSelect.value === '__manual__' ? 'block' : 'none';
+        if(elevSelect.value === '__manual__') document.getElementById('em-p-navn').focus();
+        const hint = document.getElementById('em-cooldown-hint');
+        const src = (elevSelect.value && elevSelect.value !== '__manual__') ? findElev(elevSelect.value) : null;
+        const left = src ? cooldownDaysRemaining(src) : 0;
+        if(src && left > 0){
+          hint.textContent = `⏳ ${src.navn} skal vente ${left} ${left===1?'dag':'dage'} mere (klar ${cooldownReadyDateLabel(src)}).`;
+          hint.style.display = 'block';
+        } else {
+          hint.style.display = 'none';
+        }
+      });
+    }
+    root.querySelectorAll('.em-card').forEach(card => {
+      card.addEventListener('click', () => { view.eduMode='participant'; view.eduSelectedParticipantId = card.dataset.id; render(); });
+    });
+  }
+
+  async function onDeleteCourse(c){
+    if(!confirm(`Slet uddannelsen "${c.navn}" og alle ${c.participants.length} deltagere permanent?`)) return;
+    eduCourses = eduCourses.filter(x => x.id !== c.id);
+    await saveEdu();
+    logActivity(`Slettede uddannelsen **${c.navn}**`);
+    view.eduMode = 'courses'; view.eduSelectedCourseId = null;
+    render();
+  }
+
+  async function onAddParticipant(c){
+    const selectEl = document.getElementById('em-p-elev-select');
+    const selected = selectEl.value;
+    if(!selected){ selectEl.focus(); return; }
+    let navn, elevId = null;
+    if(selected === '__manual__'){
+      navn = document.getElementById('em-p-navn').value.trim();
+      if(!navn){ document.getElementById('em-p-navn').focus(); return; }
+    } else {
+      const src = findElev(selected);
+      if(!src) return;
+      const left = cooldownDaysRemaining(src);
+      if(left > 0){
+        alert(`${src.navn} kan først tilmeldes en videreuddannelse om ${left} ${left===1?'dag':'dage'} (klar ${cooldownReadyDateLabel(src)}).`);
+        return;
+      }
+      navn = src.navn;
+      elevId = selected;
+    }
+    const instruktor = document.getElementById('em-p-instruktor').value.trim();
+    const dato = document.getElementById('em-p-dato').value || todayISO();
+    const btn = document.getElementById('em-confirm-participant');
+    btn.textContent = 'Gemmer…'; btn.disabled = true;
+    const newP = normalizeParticipant({ id: uid(), navn, elevId, instruktor, startdato: dato, competencies:{}, extraSkills:{}, removedSkills:[], notes:[], godkendt:false, godkendelsesdato:'' });
+    c.participants.push(newP);
+    await saveEdu();
+    logActivity(`Tilføjede **${navn}** til **${c.navn}**`);
+    view.eduShowParticipantForm = false; view.eduMode = 'participant'; view.eduSelectedParticipantId = newP.id;
+    render();
+  }
+
+  // ===================== VIDEREUDDANNELSE: deltager-detalje =====================
+  function renderEduParticipantDetail(){
+    const c = findCourse(view.eduSelectedCourseId);
+    if(!c){ view.eduMode = 'courses'; return renderEduCourses(); }
+    const p = findParticipant(c, view.eduSelectedParticipantId);
+    if(!p){ view.eduMode = 'course'; return renderEduCourseDetail(); }
+    const prog = progressOfParticipant(p, c);
+    const srcElev = p.elevId ? findElev(p.elevId) : null;
+
+    let html = `<button class="em-back" id="em-back-btn">← Tilbage til ${escapeHtml(c.navn)}</button>`;
+    html += `
+    <div class="em-detail-header">
+      <div>
+        <p class="em-detail-name">${escapeHtml(p.navn)}</p>
+        <div class="em-detail-meta">
+          <span>Uddannelse: <b>${escapeHtml(c.navn)}</b></span>
+          <span>Instruktør: <b>${escapeHtml(p.instruktor||'—')}</b></span>
+          <span>Startdato: <b>${fmtDate(p.startdato)}</b></span>
+          <span>Fremgang: <b>${prog.done}/${prog.total} (${prog.pct}%)</b></span>
+          ${srcElev ? `<span>Elevforløb: <b>${escapeHtml(srcElev.navn)}${srcElev.spor ? ' · '+TRACKS[srcElev.spor].label : ''}</b></span>` : ''}
+        </div>
+      </div>
+      <div class="em-approve-block">
+        <div class="em-approve-toggle">
+          <div>
+            <div style="font-size:12px;font-weight:600;">Godkendt</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-faint);">${p.godkendt ? fmtDate(p.godkendelsesdato) : (canApprove() ? 'Endnu ikke' : 'Kun vejledere kan ændre')}</div>
+          </div>
+          <div class="em-switch ${p.godkendt?'on':''} ${canApprove()?'':'disabled'}" id="em-approve-switch"></div>
+        </div>
+        ${isAdmin() ? `<button class="em-btn em-btn-danger" id="em-delete-btn" style="margin-top:8px;">Slet deltager</button>` : ''}
+      </div>
+    </div>`;
+
+    c.phases.forEach(phase => { html += renderPhase(phase, p); });
+    html += renderNotesSection(p);
+    bodyEl.innerHTML = html;
+
+    document.getElementById('em-back-btn').addEventListener('click', () => { view.eduMode='course'; render(); });
+    document.getElementById('em-approve-switch').addEventListener('click', () => { if(canApprove()) toggleApprove(p, saveEdu, renderEduParticipantDetail, `🎓 **${p.navn}** har bestået **${c.navn}**!`); });
+    const delPBtn = document.getElementById('em-delete-btn');
+    if(delPBtn) delPBtn.addEventListener('click', () => onDeleteParticipant(c, p));
+
+    attachGoalListeners(p, saveEdu, renderEduParticipantDetail);
+    attachNoteListener(p, saveEdu, renderEduParticipantDetail);
+  }
+
+  async function onDeleteParticipant(c, p){
+    if(!confirm(`Slet ${p.navn} permanent fra ${c.navn}?`)) return;
+    c.participants = c.participants.filter(x => x.id !== p.id);
+    await saveEdu();
+    logActivity(`Fjernede **${p.navn}** fra **${c.navn}**`);
+    view.eduMode = 'course'; view.eduSelectedParticipantId = null;
+    render();
+  }
+
+  // ===================== PERSONALE: samlet oversigt =====================
+  function buildRoster(){
+    const map = new Map();
+    elever.forEach(e => {
+      if(!e.godkendt) return;
+      map.set('elev:' + e.id, {
+        navn: e.navn, elevId: e.id,
+        sporLabel: e.spor ? TRACKS[e.spor].label : null,
+        sporCss: e.spor || null,
+        courses: [],
+      });
+    });
+    eduCourses.forEach(c => {
+      c.participants.forEach(p => {
+        const key = p.elevId ? ('elev:' + p.elevId) : ('name:' + p.navn.trim().toLowerCase());
+        if(!map.has(key)){
+          const srcElev = p.elevId ? findElev(p.elevId) : null;
+          map.set(key, {
+            navn: p.navn, elevId: p.elevId || null,
+            sporLabel: (srcElev && srcElev.godkendt && srcElev.spor) ? TRACKS[srcElev.spor].label : null,
+            sporCss: (srcElev && srcElev.godkendt) ? srcElev.spor : null,
+            courses: [],
+          });
+        }
+        map.get(key).courses.push({ navn: c.navn, godkendt: p.godkendt });
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => a.navn.localeCompare(b.navn, 'da'));
+  }
+
+  function renderPersonale(){
+    const roster = buildRoster();
+    const q = view.personaleSearch.trim().toLowerCase();
+    const filteredRoster = roster.filter(r => !q || r.navn.toLowerCase().includes(q));
+    const filteredPersonale = personaleList.filter(p => !q || p.navn.toLowerCase().includes(q));
+
+    let html = `
+      <div class="em-toolbar">
+        <input class="em-search" id="em-personale-search-input" placeholder="Søg efter navn…" value="${escapeHtml(view.personaleSearch)}"/>
+        ${isAdmin() ? `<button class="em-btn em-btn-ghost" id="em-export-personale-btn">⬇ Eksportér CSV</button>` : ''}
+        ${isAdmin() ? `<button class="em-btn em-btn-primary" id="em-add-personale-btn">+ Tilføj personale</button>` : ''}
+      </div>`;
+
+    if(view.personaleShowForm){
+      html += `
+      <div class="em-form-panel">
+        <p class="em-form-title">Nyt personale</p>
+        <p class="em-form-hint">Tilføj en person direkte her, og klik dig frem til hvilket spor og hvilke uddannelser de har.</p>
+        <div class="em-form-row em-2col">
+          <div class="em-field"><label>Navn</label><input id="em-personale-navn-input" placeholder="Fx Jane Doe"/></div>
+        </div>
+        <div class="em-form-actions">
+          <button class="em-btn em-btn-ghost" id="em-cancel-personale">Annuller</button>
+          <button class="em-btn em-btn-primary" id="em-confirm-personale">Tilføj personale</button>
+        </div>
+      </div>`;
+    }
+
+    html += `<div class="em-section-title">Tilføjet personale</div>`;
+    if(personaleList.length === 0){
+      html += `<div class="em-empty"><h3>Ingen tilføjet endnu</h3><p>Klik "+ Tilføj personale" for at oprette den første, og sæt derefter spor/uddannelser ved at klikke på dem.</p></div>`;
+    } else if(filteredPersonale.length === 0){
+      html += `<div class="em-empty"><h3>Ingen match</h3><p>Prøv en anden søgning.</p></div>`;
+    } else {
+      html += `<div class="em-grid">`;
+      filteredPersonale.forEach(p => {
+        const quals = eduCourses.filter(c => p.quals.includes(c.id));
+        html += `
+        <div class="em-card" style="--stripe:var(--amber)" data-personale-id="${p.id}">
+          <p class="em-card-name">${escapeHtml(p.navn)}</p>
+          <div class="em-card-badges">
+            ${p.spor ? `<span class="em-status-badge ${p.spor==='behandler'?'em-status-behandler':'em-status-laege'}">${escapeHtml(TRACKS[p.spor].label)}</span>` : ''}
+            ${quals.map(c => `<span class="em-status-badge em-status-approved">${escapeHtml(c.navn)}</span>`).join('')}
+            ${(!p.spor && quals.length===0) ? `<span class="em-status-badge em-status-nospor">Klik for at tilføje uddannelse</span>` : ''}
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `<div class="em-section-title">Automatisk fra elever &amp; videreuddannelse</div>`;
+    if(roster.length === 0){
+      html += `<div class="em-empty"><p>Ingen godkendte elever eller kursusdeltagere endnu.</p></div>`;
+    } else if(filteredRoster.length === 0){
+      html += `<div class="em-empty"><p>Ingen match.</p></div>`;
+    } else {
+      html += `<div class="em-grid">`;
+      filteredRoster.forEach(r => {
+        html += `
+        <div class="em-card" style="--stripe:var(--blue);${r.elevId ? '' : 'cursor:default;'}" ${r.elevId ? `data-elevid="${r.elevId}"` : ''}>
+          <p class="em-card-name">${escapeHtml(r.navn)}</p>
+          <div class="em-card-badges">
+            ${r.sporLabel ? `<span class="em-status-badge ${r.sporCss==='behandler'?'em-status-behandler':'em-status-laege'}">✓ ${escapeHtml(r.sporLabel)}</span>` : ''}
+            ${r.courses.map(cs => `<span class="em-status-badge ${cs.godkendt?'em-status-approved':'em-status-progress'}">${cs.godkendt?'✓ ':''}${escapeHtml(cs.navn)}</span>`).join('')}
+            ${(!r.sporLabel && r.courses.length===0) ? `<span class="em-status-badge em-status-nospor">Ingen godkendte kvalifikationer</span>` : ''}
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    html += `<p class="em-hint">"Tilføjet personale" kan redigeres direkte. Listen nedenunder opdateres automatisk fra Elever- og Videreuddannelse-fanerne.</p>`;
+    bodyEl.innerHTML = html;
+
+    document.getElementById('em-personale-search-input').addEventListener('input', ev => {
+      view.personaleSearch = ev.target.value; renderPersonale();
+      const inp = document.getElementById('em-personale-search-input');
+      inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+    });
+    const addPersonaleBtn = document.getElementById('em-add-personale-btn');
+    if(addPersonaleBtn) addPersonaleBtn.addEventListener('click', () => { view.personaleShowForm = true; renderPersonale(); });
+    const exportBtn = document.getElementById('em-export-personale-btn');
+    if(exportBtn) exportBtn.addEventListener('click', onExportPersonaleCSV);
+    if(view.personaleShowForm){
+      document.getElementById('em-cancel-personale').addEventListener('click', () => { view.personaleShowForm = false; renderPersonale(); });
+      document.getElementById('em-confirm-personale').addEventListener('click', onAddPersonale);
+    }
+    root.querySelectorAll('.em-card[data-elevid]').forEach(card => {
+      card.addEventListener('click', () => {
+        view.section = 'elever'; view.elevMode = 'detail'; view.elevSelectedId = card.dataset.elevid;
+        render();
+      });
+    });
+    root.querySelectorAll('.em-card[data-personale-id]').forEach(card => {
+      card.addEventListener('click', () => {
+        view.personaleMode = 'detail'; view.personaleSelectedId = card.dataset.personaleId;
+        render();
+      });
+    });
+  }
+
+  function renderPersonaleDetail(){
+    const p = findPersonale(view.personaleSelectedId);
+    if(!p){ view.personaleMode = 'list'; return renderPersonale(); }
+
+    let html = `<button class="em-back" id="em-back-btn">← Tilbage til personale</button>`;
+    html += `
+    <div class="em-detail-header">
+      <div>
+        <p class="em-detail-name">${escapeHtml(p.navn)}</p>
+        <p class="em-detail-desc">${canApprove() ? 'Klik på spor eller uddannelser for at tilføje/fjerne dem.' : 'Kun vejledere kan ændre spor og uddannelser.'}</p>
+      </div>
+      <div class="em-approve-block">
+        ${isAdmin() ? `<button class="em-btn em-btn-danger" id="em-delete-personale-btn">Slet personale</button>` : ''}
+      </div>
+    </div>`;
+
+    html += `<div class="em-section-title">Spor</div>`;
+    html += `<div class="em-form-panel"><div style="display:flex;flex-wrap:wrap;gap:10px;">`;
+    Object.keys(TRACKS).forEach(key => {
+      const active = p.spor === key;
+      html += `<button class="em-qual-chip ${active?'active '+TRACKS[key].css:''}" data-spor="${key}" ${canApprove()?'':'disabled'}>${active?'✓ ':''}${escapeHtml(TRACKS[key].label)}</button>`;
+    });
+    html += `</div></div>`;
+
+    html += `<div class="em-section-title">Uddannelser</div>`;
+    if(eduCourses.length === 0){
+      html += `<div class="em-empty"><p>Ingen uddannelser oprettet endnu — opret en under Videreuddannelse-fanen først.</p></div>`;
+    } else {
+      html += `<div class="em-form-panel"><div style="display:flex;flex-wrap:wrap;gap:10px;">`;
+      eduCourses.forEach(c => {
+        const active = p.quals.includes(c.id);
+        html += `<button class="em-qual-chip ${active?'active':''}" data-course="${c.id}" ${canApprove()?'':'disabled'}>${active?'✓ ':''}${escapeHtml(c.navn)}</button>`;
+      });
+      html += `</div></div>`;
+    }
+
+    html += renderNotesSection(p);
+    bodyEl.innerHTML = html;
+
+    document.getElementById('em-back-btn').addEventListener('click', () => { view.personaleMode='list'; render(); });
+    const delPersBtn = document.getElementById('em-delete-personale-btn');
+    if(delPersBtn) delPersBtn.addEventListener('click', () => onDeletePersonale(p));
+    root.querySelectorAll('.em-qual-chip[data-spor]').forEach(btn => {
+      btn.addEventListener('click', () => { if(canApprove()) onSetPersonaleSpor(p, btn.dataset.spor); });
+    });
+    root.querySelectorAll('.em-qual-chip[data-course]').forEach(btn => {
+      btn.addEventListener('click', () => { if(canApprove()) onToggleQual(p, btn.dataset.course); });
+    });
+    attachNoteListener(p, savePersonale, renderPersonaleDetail);
+  }
+
+  // ===================== Init =====================
+  (async function init(){
+    if(!FIREBASE_DB_URL || FIREBASE_DB_URL.indexOf('http') !== 0){
+      bodyEl.innerHTML = `
+        <div class="em-empty" style="text-align:left;padding:24px;">
+          <h3>⚙️ Opsætning mangler</h3>
+          <p style="margin-bottom:10px;">Denne app skal forbindes til en Firebase Realtime Database, før den kan gemme data.</p>
+          <p style="margin-bottom:10px;">Find linjen <code style="color:var(--amber);">const FIREBASE_DB_URL = '...'</code> øverst i filens kode, og sæt din Firebase "Database URL" ind der (se FIREBASE_SETUP.md for vejledning).</p>
+          <p>Gem filen igen, og genindlæs siden.</p>
+        </div>`;
+      countPill.textContent = 'Ikke opsat';
+      return;
+    }
+    try{
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Tidsudløb: Firebase svarede ikke inden for 15 sekunder. Tjek din internetforbindelse, eller at Database URL er korrekt.')), 15000));
+      await Promise.race([
+        Promise.all([loadElever(), loadEdu(), loadPersonale(), loadElevTemplate(), loadSettings(), loadActivityLog()]),
+        timeout,
+      ]);
+      render();
+    }catch(err){
+      bodyEl.innerHTML = `
+        <div class="em-empty" style="text-align:left;padding:24px;">
+          <h3>⚠️ Kunne ikke forbinde til Firebase</h3>
+          <p style="margin-bottom:10px;">Tjek at FIREBASE_DB_URL er korrekt, og at Database-reglerne ("Rules") tillader læsning og skrivning.</p>
+          <p style="font-family:monospace;font-size:12px;background:#0d1218;padding:10px;border-radius:8px;overflow-wrap:break-word;">${String(err && err.message || err).replace(/</g,'&lt;')}</p>
+          <button class="em-btn em-btn-primary" id="em-retry-init" style="margin-top:12px;">Prøv igen</button>
+        </div>`;
+      const retryBtn = document.getElementById('em-retry-init');
+      if(retryBtn) retryBtn.addEventListener('click', () => { bodyEl.innerHTML = '<div class="em-loading"><div class="em-spinner"></div> Henter data…</div>'; init(); });
+      console.error(err);
+    }
+  })();
+})();
+</script>
