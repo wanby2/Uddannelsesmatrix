@@ -1413,6 +1413,7 @@
   let view = {
     section: 'dashboard',
     elevMode: 'list', elevSelectedId: null, elevShowForm: false, elevSearch: '',
+    elevSelectedSpor: null, elevShowEnrollForm: false,
     eduMode: 'courses', eduSelectedCourseId: null, eduSelectedParticipantId: null,
     eduShowCourseForm: false, eduShowParticipantForm: false, eduSearch: '',
     personaleMode: 'list', personaleSelectedId: null, personaleShowForm: false, personaleSearch: '',
@@ -1433,8 +1434,9 @@
       renderDashboard();
     } else if(view.section === 'elever'){
       countPill.textContent = elever.length + (elever.length === 1 ? ' elev' : ' elever');
-      subtitle.textContent = view.elevMode === 'detail' ? 'ELEVPROFIL' : 'PRÆHOSPITAL OPLÆRING';
+      subtitle.textContent = view.elevMode === 'detail' ? 'ELEVPROFIL' : (view.elevMode === 'spor-detail' ? 'SPOR' : 'PRÆHOSPITAL OPLÆRING');
       if(view.elevMode === 'list') renderElevList();
+      else if(view.elevMode === 'spor-detail') renderSporDetail();
       else renderElevDetail();
     } else if(view.section === 'edu'){
       countPill.textContent = eduCourses.length + (eduCourses.length === 1 ? ' uddannelse' : ' uddannelser');
@@ -1510,6 +1512,27 @@
       });
       html += `</div>`;
     }
+
+    html += `<div class="em-section-title">Spor</div>`;
+    html += `<div class="em-grid">`;
+    Object.keys(TRACKS).forEach(key => {
+      const track = TRACKS[key];
+      const elevMembers = elever.filter(e => e.spor === key);
+      const personaleMembers = personaleList.filter(p => p.spor === key);
+      const names = elevMembers.map(e => e.navn).concat(personaleMembers.map(p => p.navn));
+      const namesPreview = names.slice(0, 6).join(', ') + (names.length > 6 ? ` +${names.length - 6} flere` : '');
+      html += `
+      <div class="em-card" style="--stripe:${key==='behandler'?'var(--blue)':'var(--purple)'}" data-spor-group="${key}">
+        <p class="em-card-name">${escapeHtml(track.label)}</p>
+        <p class="em-card-meta">${escapeHtml(track.desc)}</p>
+        ${names.length ? `<p class="em-card-meta" style="margin-bottom:12px;">👤 ${escapeHtml(namesPreview)}</p>` : ''}
+        <div class="em-card-badges">
+          <span class="em-status-badge ${key==='behandler'?'em-status-behandler':'em-status-laege'}">${names.length} tilknyttet${names.length===1?'':'e'}</span>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+
     if(isAdmin()){
       html += `<div class="em-section-title">Admin: Faser for elever</div>`;
       html += `<div class="em-form-panel">`;
@@ -1559,8 +1582,11 @@
       document.getElementById('em-cancel-add').addEventListener('click', () => { view.elevShowForm = false; renderElevList(); });
       document.getElementById('em-confirm-add').addEventListener('click', onAddElev);
     }
-    root.querySelectorAll('.em-card').forEach(card => {
+    root.querySelectorAll('.em-card[data-id]').forEach(card => {
       card.addEventListener('click', () => { view.elevMode='detail'; view.elevSelectedId = card.dataset.id; render(); });
+    });
+    root.querySelectorAll('.em-card[data-spor-group]').forEach(card => {
+      card.addEventListener('click', () => { view.elevMode='spor-detail'; view.elevSelectedSpor = card.dataset.sporGroup; render(); });
     });
     if(isAdmin()){
       root.querySelectorAll('.em-ephase-remove').forEach(btn => {
@@ -1729,6 +1755,121 @@
     await saveElever();
     logActivity(`Redigerede oplysninger for **${e.navn}**`);
     renderElevDetail();
+  }
+
+  // ===================== ELEVER: spor-detalje (Behandler/Læge oversigt) =====================
+  function renderSporDetail(){
+    const sporKey = view.elevSelectedSpor;
+    const track = TRACKS[sporKey];
+    if(!track){ view.elevMode = 'list'; return renderElevList(); }
+    const elevMembers = elever.filter(e => e.spor === sporKey);
+    const personaleMembers = personaleList.filter(p => p.spor === sporKey);
+
+    let html = `<button class="em-back" id="em-back-btn">← Tilbage til elever</button>`;
+    html += `
+    <div class="em-detail-header">
+      <div>
+        <p class="em-detail-name">${escapeHtml(track.label)}</p>
+        <p class="em-detail-desc">${escapeHtml(track.desc)}</p>
+        <div class="em-detail-meta"><span>Tilknyttet i alt: <b>${elevMembers.length + personaleMembers.length}</b></span></div>
+      </div>
+    </div>`;
+
+    if(canApprove()){
+      const available = personaleList.filter(p => p.spor !== sporKey);
+      html += `
+      <div class="em-toolbar">
+        <div></div>
+        ${available.length ? `<button class="em-btn em-btn-primary" id="em-enroll-personale-btn">+ Tilmeld fra personale</button>` : ''}
+      </div>`;
+      if(view.elevShowEnrollForm){
+        html += `
+        <div class="em-form-panel">
+          <p class="em-form-title">Tilmeld personale til ${escapeHtml(track.label)}</p>
+          <div class="em-form-row em-2col">
+            <div class="em-field">
+              <label>Personale</label>
+              <select id="em-enroll-personale-select">
+                <option value="">— Vælg person —</option>
+                ${available.map(p => `<option value="${p.id}">${escapeHtml(p.navn)}${p.spor ? ' · nuværende: ' + TRACKS[p.spor].label : ''}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="em-form-actions">
+            <button class="em-btn em-btn-ghost" id="em-cancel-enroll">Annuller</button>
+            <button class="em-btn em-btn-primary" id="em-confirm-enroll">Tilmeld</button>
+          </div>
+        </div>`;
+      }
+    }
+
+    html += `<div class="em-section-title">Elever</div>`;
+    if(elevMembers.length === 0){
+      html += `<div class="em-empty"><p>Ingen elever med dette spor endnu.</p></div>`;
+    } else {
+      html += `<div class="em-grid">`;
+      elevMembers.forEach(e => {
+        const prog = progressOfElev(e);
+        html += `
+        <div class="em-card" style="--stripe:${e.godkendt?'var(--green)':'var(--amber)'}" data-elevid="${e.id}">
+          <p class="em-card-name">${escapeHtml(e.navn)}</p>
+          <p class="em-card-meta">Mentor: ${escapeHtml(e.mentor||'—')}</p>
+          <div class="em-progress-row">
+            <div class="em-progress-track"><div class="em-progress-fill" style="width:${prog.pct}%"></div></div>
+            <div class="em-progress-label">${prog.done}/${prog.total}</div>
+          </div>
+          <span class="em-status-badge ${e.godkendt?'em-status-approved':'em-status-progress'}">${e.godkendt?'✓ Godkendt':'Under oplæring'}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `<div class="em-section-title">Personale</div>`;
+    if(personaleMembers.length === 0){
+      html += `<div class="em-empty"><p>Ingen personale tilmeldt dette spor endnu.</p></div>`;
+    } else {
+      html += `<div class="em-grid">`;
+      personaleMembers.forEach(p => {
+        html += `
+        <div class="em-card" style="--stripe:var(--amber)" data-personaleid="${p.id}">
+          <p class="em-card-name">${escapeHtml(p.navn)}</p>
+          <span class="em-status-badge em-status-nospor">Fra personale</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    bodyEl.innerHTML = html;
+    document.getElementById('em-back-btn').addEventListener('click', () => { view.elevMode='list'; view.elevShowEnrollForm=false; render(); });
+    root.querySelectorAll('.em-card[data-elevid]').forEach(card => {
+      card.addEventListener('click', () => { view.elevSelectedId = card.dataset.elevid; view.elevMode='detail'; render(); });
+    });
+    root.querySelectorAll('.em-card[data-personaleid]').forEach(card => {
+      card.addEventListener('click', () => {
+        view.section = 'personale'; view.personaleMode = 'detail'; view.personaleSelectedId = card.dataset.personaleid;
+        render();
+      });
+    });
+    const enrollBtn = document.getElementById('em-enroll-personale-btn');
+    if(enrollBtn) enrollBtn.addEventListener('click', () => { view.elevShowEnrollForm = true; renderSporDetail(); });
+    if(view.elevShowEnrollForm){
+      const cancelBtn = document.getElementById('em-cancel-enroll');
+      if(cancelBtn) cancelBtn.addEventListener('click', () => { view.elevShowEnrollForm = false; renderSporDetail(); });
+      const confirmBtn = document.getElementById('em-confirm-enroll');
+      if(confirmBtn) confirmBtn.addEventListener('click', () => onEnrollPersonaleToSpor(sporKey));
+    }
+  }
+  async function onEnrollPersonaleToSpor(sporKey){
+    const select = document.getElementById('em-enroll-personale-select');
+    const id = select.value;
+    if(!id){ select.focus(); return; }
+    const rec = findPersonale(id);
+    if(!rec) return;
+    rec.spor = sporKey;
+    await savePersonale();
+    logActivity(`Tilmeldte **${rec.navn}** til spor **${TRACKS[sporKey].label}** fra personale`);
+    view.elevShowEnrollForm = false;
+    renderSporDetail();
   }
 
   // ===================== VIDEREUDDANNELSE: kursusoversigt =====================
