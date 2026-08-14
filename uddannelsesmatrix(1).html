@@ -2167,6 +2167,24 @@
   }
 
   // ===================== VIDEREUDDANNELSE: deltager-detalje =====================
+  async function onToggleParticipantApprove(c, p){
+    await toggleApprove(p, saveEdu, renderEduParticipantDetail, `🎓 **${p.navn}** har bestået **${c.navn}**!`);
+    if(p.personaleId){
+      const rec = findPersonale(p.personaleId);
+      if(rec){
+        const idx = rec.quals.indexOf(c.id);
+        if(p.godkendt && idx === -1){
+          rec.quals.push(c.id);
+          await savePersonale();
+          logActivity(`Krydsede automatisk **${c.navn}** af for **${rec.navn}** (personale) efter godkendelse`);
+        } else if(!p.godkendt && idx !== -1){
+          rec.quals.splice(idx, 1);
+          await savePersonale();
+        }
+      }
+    }
+  }
+
   function renderEduParticipantDetail(){
     const c = findCourse(view.eduSelectedCourseId);
     if(!c){ view.eduMode = 'courses'; return renderEduCourses(); }
@@ -2205,7 +2223,7 @@
     bodyEl.innerHTML = html;
 
     document.getElementById('em-back-btn').addEventListener('click', () => { view.eduMode='course'; render(); });
-    document.getElementById('em-approve-switch').addEventListener('click', () => { if(canApprove()) toggleApprove(p, saveEdu, renderEduParticipantDetail, `🎓 **${p.navn}** har bestået **${c.navn}**!`); });
+    document.getElementById('em-approve-switch').addEventListener('click', () => { if(canApprove()) onToggleParticipantApprove(c, p); });
     const delPBtn = document.getElementById('em-delete-btn');
     if(delPBtn) delPBtn.addEventListener('click', () => onDeleteParticipant(c, p));
 
