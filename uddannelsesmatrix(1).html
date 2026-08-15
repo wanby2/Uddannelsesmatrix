@@ -851,6 +851,7 @@
     if(!e.removedSkills) e.removedSkills = [];
     if(!e.competencies) e.competencies = {};
     if(!e.notes) e.notes = [];
+    if(e.deleted === undefined) e.deleted = false;
     return e;
   }
   async function saveElever(){
@@ -982,12 +983,14 @@
     if(!p.notes) p.notes = [];
     if(p.elevId === undefined) p.elevId = null;
     if(p.personaleId === undefined) p.personaleId = null;
+    if(p.deleted === undefined) p.deleted = false;
     return p;
   }
   function normalizeCourse(c){
     if(!c.participants) c.participants = [];
     if(!c.phases || c.phases.length === 0) c.phases = [{ key: 'goals', label: 'Mål' }];
     c.participants = c.participants.map(normalizeParticipant);
+    if(c.deleted === undefined) c.deleted = false;
     return c;
   }
   function progressOfParticipant(p, course){
@@ -1011,11 +1014,16 @@
   }
   function findCourse(id){ return eduCourses.find(c => c.id === id); }
   function findParticipant(course, id){ return course.participants.find(p => p.id === id); }
+  function activeElever(){ return elever.filter(e => !e.deleted); }
+  function activeCourses(){ return eduCourses.filter(c => !c.deleted); }
+  function activePersonale(){ return personaleList.filter(p => !p.deleted); }
+  function activeParticipants(c){ return c.participants.filter(p => !p.deleted); }
   function courseStats(course){
-    const personaleQualified = personaleList.filter(p => p.quals.includes(course.id));
-    const directApproved = course.participants.filter(p => p.godkendt).length;
+    const personaleQualified = activePersonale().filter(p => p.quals.includes(course.id));
+    const liveParticipants = activeParticipants(course);
+    const directApproved = liveParticipants.filter(p => p.godkendt).length;
     return {
-      totalCount: course.participants.length + personaleQualified.length,
+      totalCount: liveParticipants.length + personaleQualified.length,
       totalApproved: directApproved + personaleQualified.length,
       personaleCount: personaleQualified.length,
     };
@@ -1031,6 +1039,7 @@
     if(!p.competencies) p.competencies = {};
     if(!p.extraSkills) p.extraSkills = {};
     if(!p.removedSkills) p.removedSkills = [];
+    if(p.deleted === undefined) p.deleted = false;
     return p;
   }
   async function savePersonale(){
@@ -1046,24 +1055,52 @@
   function findPersonale(id){ return personaleList.find(p => p.id === id); }
 
   // ===================== DASHBOARD =====================
+  function gatherTrashItems(){
+    const items = [];
+    elever.filter(e => e.deleted).forEach(e => items.push({
+      type: 'Elev', navn: e.navn,
+      restore: async () => { e.deleted = false; await saveElever(); logActivity(`Gendannede elev **${e.navn}** fra papirkurven`); render(); },
+      purge: async () => { elever = elever.filter(x => x.id !== e.id); await saveElever(); logActivity(`Slettede elev **${e.navn}** permanent`); render(); },
+    }));
+    eduCourses.filter(c => c.deleted).forEach(c => items.push({
+      type: 'Uddannelse', navn: c.navn,
+      restore: async () => { c.deleted = false; await saveEdu(); logActivity(`Gendannede uddannelsen **${c.navn}** fra papirkurven`); render(); },
+      purge: async () => { eduCourses = eduCourses.filter(x => x.id !== c.id); await saveEdu(); logActivity(`Slettede uddannelsen **${c.navn}** permanent`); render(); },
+    }));
+    eduCourses.forEach(c => {
+      c.participants.filter(p => p.deleted).forEach(p => items.push({
+        type: 'Deltager (' + c.navn + ')', navn: p.navn,
+        restore: async () => { p.deleted = false; await saveEdu(); logActivity(`Gendannede **${p.navn}** i **${c.navn}** fra papirkurven`); render(); },
+        purge: async () => { c.participants = c.participants.filter(x => x.id !== p.id); await saveEdu(); logActivity(`Slettede **${p.navn}** fra **${c.navn}** permanent`); render(); },
+      }));
+    });
+    personaleList.filter(p => p.deleted).forEach(p => items.push({
+      type: 'Personale', navn: p.navn,
+      restore: async () => { p.deleted = false; await savePersonale(); logActivity(`Gendannede **${p.navn}** fra papirkurven (personale)`); render(); },
+      purge: async () => { personaleList = personaleList.filter(x => x.id !== p.id); await savePersonale(); logActivity(`Slettede **${p.navn}** permanent (personale)`); render(); },
+    }));
+    return items;
+  }
+
   function gatherRecentActivity(limit){
     const items = [];
-    elever.forEach(e => (e.notes||[]).forEach(n => items.push({ ...n, sourceLabel: 'Elev', sourceName: e.navn })));
-    eduCourses.forEach(c => c.participants.forEach(p => (p.notes||[]).forEach(n => items.push({ ...n, sourceLabel: c.navn, sourceName: p.navn }))));
-    personaleList.forEach(p => (p.notes||[]).forEach(n => items.push({ ...n, sourceLabel: 'Personale', sourceName: p.navn })));
+    activeElever().forEach(e => (e.notes||[]).forEach(n => items.push({ ...n, sourceLabel: 'Elev', sourceName: e.navn })));
+    activeCourses().forEach(c => activeParticipants(c).forEach(p => (p.notes||[]).forEach(n => items.push({ ...n, sourceLabel: c.navn, sourceName: p.navn }))));
+    activePersonale().forEach(p => (p.notes||[]).forEach(n => items.push({ ...n, sourceLabel: 'Personale', sourceName: p.navn })));
     return items.sort((a, b) => (b.dato + (b.id||'')).localeCompare(a.dato + (a.id||''))).slice(0, limit);
   }
 
   function renderDashboard(){
-    const totalElever = elever.length;
-    const approvedElever = elever.filter(e => e.godkendt).length;
-    const behandlerCount = elever.filter(e => e.spor === 'behandler').length;
-    const laegeCount = elever.filter(e => e.spor === 'laege').length;
+    const elevList = activeElever();
+    const totalElever = elevList.length;
+    const approvedElever = elevList.filter(e => e.godkendt).length;
+    const behandlerCount = elevList.filter(e => e.spor === 'behandler').length;
+    const laegeCount = elevList.filter(e => e.spor === 'laege').length;
     const noSporCount = totalElever - behandlerCount - laegeCount;
-    const avgProgress = totalElever ? Math.round(elever.reduce((sum, e) => sum + progressOfElev(e).pct, 0) / totalElever) : 0;
+    const avgProgress = totalElever ? Math.round(elevList.reduce((sum, e) => sum + progressOfElev(e).pct, 0) / totalElever) : 0;
 
     let courseParticipants = 0, courseApproved = 0;
-    eduCourses.forEach(c => { const s = courseStats(c); courseParticipants += s.totalCount; courseApproved += s.totalApproved; });
+    activeCourses().forEach(c => { const s = courseStats(c); courseParticipants += s.totalCount; courseApproved += s.totalApproved; });
 
     let html = `
       <div class="em-toolbar">
@@ -1111,8 +1148,8 @@
     html += `</div>`;
 
     if(canApprove()){
-      const overdueSpor = elever.filter(e => !e.spor && daysSince(e.startdato) > 7);
-      const overdueApproval = elever.filter(e => !e.godkendt && e.spor && daysSince(e.startdato) > 14);
+      const overdueSpor = activeElever().filter(e => !e.spor && daysSince(e.startdato) > 7);
+      const overdueApproval = activeElever().filter(e => !e.godkendt && e.spor && daysSince(e.startdato) > 14);
       html += `<div class="em-section-title">Kræver handling</div>`;
       if(overdueSpor.length === 0 && overdueApproval.length === 0){
         html += `<div class="em-empty"><p>✅ Ingen elever kræver opmærksomhed lige nu.</p></div>`;
@@ -1174,11 +1211,42 @@
       html += `</div>`;
     }
 
+    let trashItems = [];
+    if(isAdmin()){
+      trashItems = gatherTrashItems();
+      html += `<div class="em-section-title">Papirkurv${trashItems.length ? ` (${trashItems.length})` : ''}</div>`;
+      if(trashItems.length === 0){
+        html += `<div class="em-empty"><p>Papirkurven er tom.</p></div>`;
+      } else {
+        html += `<div class="em-form-panel">`;
+        trashItems.forEach((item, i) => {
+          html += `
+          <div class="em-skill-row">
+            <span class="em-skill-name">${escapeHtml(item.navn)} <span class="em-goal-custom-tag">${escapeHtml(item.type)}</span></span>
+            <div style="display:flex;gap:6px;">
+              <button class="em-btn em-btn-ghost em-trash-restore" data-idx="${i}" style="padding:6px 12px;font-size:11.5px;">↺ Gendan</button>
+              <button class="em-btn em-btn-danger em-trash-purge" data-idx="${i}" style="padding:6px 12px;font-size:11.5px;">Slet permanent</button>
+            </div>
+          </div>`;
+        });
+        html += `</div>`;
+        html += `<p class="em-hint">Slet permanent kan ikke fortrydes. Gendan lægger elementet tilbage hvor det kom fra.</p>`;
+      }
+    }
+
     bodyEl.innerHTML = html;
     root.querySelectorAll('.em-card[data-elevid]').forEach(card => {
       card.addEventListener('click', () => {
         view.section = 'elever'; view.elevMode = 'detail'; view.elevSelectedId = card.dataset.elevid;
         render();
+      });
+    });
+    root.querySelectorAll('.em-trash-restore').forEach(btn => {
+      btn.addEventListener('click', () => trashItems[Number(btn.dataset.idx)].restore());
+    });
+    root.querySelectorAll('.em-trash-purge').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(confirm('Slet permanent? Dette kan IKKE fortrydes.')) trashItems[Number(btn.dataset.idx)].purge();
       });
     });
 
@@ -1190,19 +1258,19 @@
     const resultsEl = document.getElementById('em-global-search-results');
     if(!q){ resultsEl.innerHTML = ''; return; }
     const results = [];
-    elever.forEach(e => {
+    activeElever().forEach(e => {
       if(e.navn.toLowerCase().includes(q)){
         results.push({ label: e.navn, type: 'Elev', action: () => { view.section='elever'; view.elevMode='detail'; view.elevSelectedId=e.id; render(); } });
       }
     });
-    eduCourses.forEach(c => {
-      c.participants.forEach(p => {
+    activeCourses().forEach(c => {
+      activeParticipants(c).forEach(p => {
         if(p.navn.toLowerCase().includes(q)){
           results.push({ label: p.navn, type: c.navn, action: () => { view.section='edu'; view.eduMode='participant'; view.eduSelectedCourseId=c.id; view.eduSelectedParticipantId=p.id; render(); } });
         }
       });
     });
-    personaleList.forEach(p => {
+    activePersonale().forEach(p => {
       if(p.navn.toLowerCase().includes(q)){
         results.push({ label: p.navn, type: 'Personale', action: () => { view.section='personale'; view.personaleMode='detail'; view.personaleSelectedId=p.id; render(); } });
       }
@@ -1249,25 +1317,25 @@
     renderPersonaleDetail();
   }
   async function onDeletePersonale(rec){
-    if(!confirm(`Slet ${rec.navn} permanent fra personalelisten?`)) return;
-    personaleList = personaleList.filter(x => x.id !== rec.id);
+    if(!confirm(`Flyt ${rec.navn} til papirkurven? Kan gendannes senere fra Dashboard.`)) return;
+    rec.deleted = true;
     await savePersonale();
-    logActivity(`Slettede **${rec.navn}** fra personale`);
+    logActivity(`Flyttede **${rec.navn}** til papirkurven (personale)`);
     view.personaleMode = 'list'; view.personaleSelectedId = null;
     render();
   }
   function onExportPersonaleCSV(){
     const rows = [['Navn', 'Spor', 'Uddannelser']];
-    personaleList.forEach(p => {
+    activePersonale().forEach(p => {
       const spor = p.spor ? TRACKS[p.spor].label : '';
-      const quals = eduCourses.filter(c => p.quals.includes(c.id)).map(c => c.navn).join('; ');
+      const quals = activeCourses().filter(c => p.quals.includes(c.id)).map(c => c.navn).join('; ');
       rows.push([p.navn, spor, quals]);
     });
     downloadCSV('personale.csv', rows);
   }
   function onExportEleverCSV(){
     const rows = [['Navn', 'Mentor', 'Startdato', 'Spor', 'Godkendt', 'Godkendelsesdato', 'Fremgang %']];
-    elever.forEach(e => {
+    activeElever().forEach(e => {
       rows.push([
         e.navn, e.mentor || '', e.startdato || '',
         e.spor ? TRACKS[e.spor].label : '',
@@ -1413,7 +1481,8 @@
   let view = {
     section: 'dashboard',
     elevMode: 'list', elevSelectedId: null, elevShowForm: false, elevSearch: '',
-    elevSelectedSpor: null, elevShowEnrollForm: false,
+    elevSelectedSpor: null, elevShowEnrollForm: false, elevShowEditForm: false,
+    elevFilterStatus: '', elevFilterSpor: '',
     eduMode: 'courses', eduSelectedCourseId: null, eduSelectedParticipantId: null,
     eduShowCourseForm: false, eduShowParticipantForm: false, eduSearch: '',
     personaleMode: 'list', personaleSelectedId: null, personaleShowForm: false, personaleSearch: '',
@@ -1423,6 +1492,24 @@
     bodyEl.classList.remove('em-fade');
     void bodyEl.offsetWidth;
     bodyEl.classList.add('em-fade');
+  }
+
+  let autoRefreshTimer = null;
+  function anyFormOpen(){
+    return view.elevShowForm || view.elevShowEditForm || view.elevShowEnrollForm ||
+      view.eduShowCourseForm || view.eduShowParticipantForm || view.personaleShowForm;
+  }
+  function startAutoRefresh(){
+    if(autoRefreshTimer) return;
+    autoRefreshTimer = setInterval(async () => {
+      if(anyFormOpen()) return;
+      const active = document.activeElement;
+      if(active && ['INPUT','TEXTAREA','SELECT'].indexOf(active.tagName) !== -1) return;
+      try{
+        await Promise.all([loadElever(), loadEdu(), loadPersonale(), loadElevTemplate(), loadSettings(), loadActivityLog()]);
+        render();
+      }catch(e){ /* stille fejl — prøver igen ved næste interval */ }
+    }, 20000);
   }
 
   // ===================== Top-level render =====================
@@ -1457,11 +1544,25 @@
   // ===================== ELEVER: liste =====================
   function renderElevList(){
     const q = view.elevSearch.trim().toLowerCase();
-    const filtered = elever.filter(e => !q || e.navn.toLowerCase().includes(q) || (e.mentor||'').toLowerCase().includes(q));
+    let filtered = activeElever().filter(e => !q || e.navn.toLowerCase().includes(q) || (e.mentor||'').toLowerCase().includes(q));
+    if(view.elevFilterStatus === 'godkendt') filtered = filtered.filter(e => e.godkendt);
+    else if(view.elevFilterStatus === 'oplaering') filtered = filtered.filter(e => !e.godkendt);
+    if(view.elevFilterSpor === 'ingen') filtered = filtered.filter(e => !e.spor);
+    else if(view.elevFilterSpor) filtered = filtered.filter(e => e.spor === view.elevFilterSpor);
 
     let html = `
       <div class="em-toolbar">
         <input class="em-search" id="em-search-input" placeholder="Søg efter elev eller mentor…" value="${escapeHtml(view.elevSearch)}"/>
+        <select class="em-search" id="em-filter-status" style="flex:0 0 auto;min-width:150px;">
+          <option value="">Alle statusser</option>
+          <option value="godkendt" ${view.elevFilterStatus==='godkendt'?'selected':''}>✓ Godkendt</option>
+          <option value="oplaering" ${view.elevFilterStatus==='oplaering'?'selected':''}>Under oplæring</option>
+        </select>
+        <select class="em-search" id="em-filter-spor" style="flex:0 0 auto;min-width:150px;">
+          <option value="">Alle spor</option>
+          <option value="ingen" ${view.elevFilterSpor==='ingen'?'selected':''}>Spor ikke valgt</option>
+          ${Object.keys(TRACKS).map(k => `<option value="${k}" ${view.elevFilterSpor===k?'selected':''}>${escapeHtml(TRACKS[k].label)}</option>`).join('')}
+        </select>
         ${isAdmin() ? `<button class="em-btn em-btn-ghost" id="em-export-elever-btn">⬇ Eksportér CSV</button>` : ''}
         ${canApprove() ? `<button class="em-btn em-btn-primary" id="em-add-btn">+ Tilføj elev</button>` : ''}
       </div>
@@ -1484,7 +1585,7 @@
       </div>`;
     }
 
-    if(elever.length === 0){
+    if(activeElever().length === 0){
       html += `<div class="em-empty"><h3>Ingen elever endnu</h3><p>Klik "+ Tilføj elev" for at oprette den første.</p></div>`;
     } else if(filtered.length === 0){
       html += `<div class="em-empty"><h3>Ingen match</h3><p>Prøv en anden søgning.</p></div>`;
@@ -1517,8 +1618,8 @@
     html += `<div class="em-grid">`;
     Object.keys(TRACKS).forEach(key => {
       const track = TRACKS[key];
-      const elevMembers = elever.filter(e => e.spor === key);
-      const personaleMembers = personaleList.filter(p => p.spor === key);
+      const elevMembers = activeElever().filter(e => e.spor === key);
+      const personaleMembers = activePersonale().filter(p => p.spor === key);
       const names = elevMembers.map(e => e.navn).concat(personaleMembers.map(p => p.navn));
       const namesPreview = names.slice(0, 6).join(', ') + (names.length > 6 ? ` +${names.length - 6} flere` : '');
       html += `
@@ -1563,6 +1664,14 @@
       <div class="em-form-row em-2col">
         <div class="em-field"><label>Webhook URL</label><input type="text" id="em-discord-webhook-input" value="${escapeHtml(settings.discordWebhookUrl || '')}" placeholder="https://discord.com/api/webhooks/…"/></div>
       </div>`;
+      html += `<p style="font-size:10.5px;font-family:var(--mono);color:var(--text-dim);text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 6px;">Sikkerhedskopi</p>`;
+      html += `<p class="em-form-hint">Download hele databasen som én fil, eller gendan fra en tidligere sikkerhedskopi. Importér overskriver alt nuværende data.</p>`;
+      html += `
+      <div class="em-form-actions" style="justify-content:flex-start;">
+        <button class="em-btn em-btn-ghost" id="em-export-all-btn">⬇ Eksportér alt (backup)</button>
+        <button class="em-btn em-btn-ghost" id="em-import-all-btn">⬆ Importér backup</button>
+        <input type="file" id="em-import-all-input" accept=".json" style="display:none;"/>
+      </div>`;
       html += `</div>`;
     }
 
@@ -1574,6 +1683,12 @@
       const inp = document.getElementById('em-search-input');
       inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
     });
+    document.getElementById('em-filter-status').addEventListener('change', ev => {
+      view.elevFilterStatus = ev.target.value; renderElevList();
+    });
+    document.getElementById('em-filter-spor').addEventListener('change', ev => {
+      view.elevFilterSpor = ev.target.value; renderElevList();
+    });
     const addBtn = document.getElementById('em-add-btn');
     if(addBtn) addBtn.addEventListener('click', () => { view.elevShowForm = true; renderElevList(); });
     const exportElevBtn = document.getElementById('em-export-elever-btn');
@@ -1583,7 +1698,7 @@
       document.getElementById('em-confirm-add').addEventListener('click', onAddElev);
     }
     root.querySelectorAll('.em-card[data-id]').forEach(card => {
-      card.addEventListener('click', () => { view.elevMode='detail'; view.elevSelectedId = card.dataset.id; render(); });
+      card.addEventListener('click', () => { view.elevMode='detail'; view.elevSelectedId = card.dataset.id; view.elevShowEditForm=false; render(); });
     });
     root.querySelectorAll('.em-card[data-spor-group]').forEach(card => {
       card.addEventListener('click', () => { view.elevMode='spor-detail'; view.elevSelectedSpor = card.dataset.sporGroup; render(); });
@@ -1609,8 +1724,53 @@
       if(webhookInput){
         webhookInput.addEventListener('change', () => onSetDiscordWebhook(webhookInput.value));
       }
+      const exportAllBtn = document.getElementById('em-export-all-btn');
+      if(exportAllBtn) exportAllBtn.addEventListener('click', onExportAllBackup);
+      const importAllBtn = document.getElementById('em-import-all-btn');
+      const importAllInput = document.getElementById('em-import-all-input');
+      if(importAllBtn && importAllInput){
+        importAllBtn.addEventListener('click', () => importAllInput.click());
+        importAllInput.addEventListener('change', () => onImportAllBackup(importAllInput));
+      }
       attachPhaseSkillEditorListeners();
     }
+  }
+
+  function onExportAllBackup(){
+    const backup = {
+      _type: 'uddannelsesmatrix-backup', _version: 1, _exportedAt: new Date().toISOString(),
+      elever, eduCourses, personaleList, elevTemplate, settings, activityLog,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `uddannelsesmatrix-backup-${todayISO()}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  async function onImportAllBackup(inputEl){
+    const file = inputEl.files && inputEl.files[0];
+    if(!file) return;
+    if(!confirm('Importér backup? Dette OVERSKRIVER alt nuværende data i skemaet for alle brugere. Fortsæt?')) { inputEl.value = ''; return; }
+    try{
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      if(backup._type !== 'uddannelsesmatrix-backup') throw new Error('Filen ligner ikke en gyldig backup fra Uddannelsesmatrix.');
+      elever = (backup.elever || []).map(normalizeElev);
+      eduCourses = (backup.eduCourses || []).map(normalizeCourse);
+      personaleList = (backup.personaleList || []).map(normalizePersonale);
+      elevTemplate = normalizeElevTemplate(backup.elevTemplate);
+      settings = normalizeSettings(backup.settings);
+      activityLog = Array.isArray(backup.activityLog) ? backup.activityLog : [];
+      await Promise.all([saveElever(), saveEdu(), savePersonale(), saveElevTemplate(true), saveSettings(), saveActivityLog()]);
+      logActivity('Importerede en fuld sikkerhedskopi (overskrev alt data)');
+      alert('Backup importeret.');
+      render();
+    }catch(err){
+      alert('Kunne ikke importere backup: ' + (err.message || err));
+      console.error(err);
+    }
+    inputEl.value = '';
   }
 
   async function onAddElev(){
@@ -1660,6 +1820,22 @@
       </div>
     </div>`;
 
+    if(view.elevShowEditForm && canApprove()){
+      html += `
+      <div class="em-form-panel">
+        <p class="em-form-title">Rediger oplysninger</p>
+        <div class="em-form-row">
+          <div class="em-field"><label>Navn</label><input id="em-edit-navn" value="${escapeHtml(e.navn)}"/></div>
+          <div class="em-field"><label>Mentor</label><input id="em-edit-mentor" value="${escapeHtml(e.mentor||'')}"/></div>
+          <div class="em-field"><label>Startdato</label><input id="em-edit-dato" type="date" value="${escapeHtml(e.startdato||'')}"/></div>
+        </div>
+        <div class="em-form-actions">
+          <button class="em-btn em-btn-ghost" id="em-cancel-edit-elev">Annuller</button>
+          <button class="em-btn em-btn-primary" id="em-save-edit-elev">Gem ændringer</button>
+        </div>
+      </div>`;
+    }
+
     html += `<div class="em-section-title">Uge 1 · Fælles for alle</div>`;
     elevTemplate.common.forEach(phase => { html += renderPhase(phase, e); });
 
@@ -1701,13 +1877,17 @@
     html += renderNotesSection(e);
     bodyEl.innerHTML = html;
 
-    document.getElementById('em-back-btn').addEventListener('click', () => { view.elevMode='list'; render(); });
+    document.getElementById('em-back-btn').addEventListener('click', () => { view.elevMode='list'; view.elevShowEditForm=false; render(); });
     const approveSwitch = document.getElementById('em-approve-switch');
     approveSwitch.addEventListener('click', () => { if(e.spor && canApprove()) toggleApprove(e, saveElever, renderElevDetail, `🎉 **${e.navn}** er nu godkendt som **${TRACKS[e.spor].label}**!`); });
     const delBtn = document.getElementById('em-delete-btn');
     if(delBtn) delBtn.addEventListener('click', () => onDeleteElev(e));
     const editBtn = document.getElementById('em-edit-elev-btn');
-    if(editBtn) editBtn.addEventListener('click', () => onEditElevInfo(e));
+    if(editBtn) editBtn.addEventListener('click', () => { view.elevShowEditForm = true; renderElevDetail(); });
+    const cancelEditBtn = document.getElementById('em-cancel-edit-elev');
+    if(cancelEditBtn) cancelEditBtn.addEventListener('click', () => { view.elevShowEditForm = false; renderElevDetail(); });
+    const saveEditBtn = document.getElementById('em-save-edit-elev');
+    if(saveEditBtn) saveEditBtn.addEventListener('click', () => onEditElevInfo(e));
     root.querySelectorAll('.em-spor-option').forEach(btn => {
       btn.addEventListener('click', () => onChooseSpor(e, btn.dataset.spor));
     });
@@ -1735,25 +1915,24 @@
     renderElevDetail();
   }
   async function onDeleteElev(e){
-    if(!confirm(`Slet ${e.navn} permanent? Dette kan ikke fortrydes.`)) return;
-    elever = elever.filter(x => x.id !== e.id);
+    if(!confirm(`Flyt ${e.navn} til papirkurven? Kan gendannes senere fra Dashboard.`)) return;
+    e.deleted = true;
     await saveElever();
-    logActivity(`Slettede elev **${e.navn}**`);
+    logActivity(`Flyttede **${e.navn}** til papirkurven (elev)`);
     view.elevMode = 'list'; view.elevSelectedId = null;
     render();
   }
   async function onEditElevInfo(e){
-    const navn = prompt('Navn:', e.navn);
-    if(navn === null) return;
-    const mentor = prompt('Mentor:', e.mentor || '');
-    if(mentor === null) return;
-    const dato = prompt('Startdato (ÅÅÅÅ-MM-DD):', e.startdato || '');
-    if(dato === null) return;
-    if(navn.trim()) e.navn = navn.trim();
-    e.mentor = mentor.trim();
-    if(/^\d{4}-\d{2}-\d{2}$/.test(dato.trim())) e.startdato = dato.trim();
+    const navn = document.getElementById('em-edit-navn').value.trim();
+    const mentor = document.getElementById('em-edit-mentor').value.trim();
+    const dato = document.getElementById('em-edit-dato').value.trim();
+    if(!navn){ document.getElementById('em-edit-navn').focus(); return; }
+    e.navn = navn;
+    e.mentor = mentor;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(dato)) e.startdato = dato;
     await saveElever();
     logActivity(`Redigerede oplysninger for **${e.navn}**`);
+    view.elevShowEditForm = false;
     renderElevDetail();
   }
 
@@ -1762,8 +1941,8 @@
     const sporKey = view.elevSelectedSpor;
     const track = TRACKS[sporKey];
     if(!track){ view.elevMode = 'list'; return renderElevList(); }
-    const elevMembers = elever.filter(e => e.spor === sporKey);
-    const personaleMembers = personaleList.filter(p => p.spor === sporKey);
+    const elevMembers = activeElever().filter(e => e.spor === sporKey);
+    const personaleMembers = activePersonale().filter(p => p.spor === sporKey);
 
     let html = `<button class="em-back" id="em-back-btn">← Tilbage til elever</button>`;
     html += `
@@ -1776,7 +1955,7 @@
     </div>`;
 
     if(canApprove()){
-      const available = personaleList.filter(p => p.spor !== sporKey);
+      const available = activePersonale().filter(p => p.spor !== sporKey);
       html += `
       <div class="em-toolbar">
         <div></div>
@@ -1897,9 +2076,9 @@
     }
 
     const q = view.eduSearch.trim().toLowerCase();
-    const filtered = eduCourses.filter(c => !q || c.navn.toLowerCase().includes(q));
+    const filtered = activeCourses().filter(c => !q || c.navn.toLowerCase().includes(q));
 
-    if(eduCourses.length === 0){
+    if(activeCourses().length === 0){
       html += `<div class="em-empty"><h3>Ingen uddannelser endnu</h3><p>Klik "+ Tilføj uddannelse" for at oprette den første.</p></div>`;
     } else if(filtered.length === 0){
       html += `<div class="em-empty"><h3>Ingen match</h3><p>Prøv en anden søgning.</p></div>`;
@@ -2005,11 +2184,12 @@
       </div>`;
 
     if(view.eduShowParticipantForm){
-      const approved = elever.filter(e => e.godkendt);
-      const alreadyAddedElev = new Set(c.participants.filter(p => p.elevId).map(p => p.elevId));
+      const liveParticipants = activeParticipants(c);
+      const approved = activeElever().filter(e => e.godkendt);
+      const alreadyAddedElev = new Set(liveParticipants.filter(p => p.elevId).map(p => p.elevId));
       const availableApproved = approved.filter(e => !alreadyAddedElev.has(e.id));
-      const alreadyAddedPersonale = new Set(c.participants.filter(p => p.personaleId).map(p => p.personaleId));
-      const availablePersonale = personaleList.filter(p => !alreadyAddedPersonale.has(p.id));
+      const alreadyAddedPersonale = new Set(liveParticipants.filter(p => p.personaleId).map(p => p.personaleId));
+      const availablePersonale = activePersonale().filter(p => !alreadyAddedPersonale.has(p.id));
       html += `
       <div class="em-form-panel">
         <p class="em-form-title">Ny deltager på ${escapeHtml(c.navn)}</p>
@@ -2048,11 +2228,12 @@
       </div>`;
     }
 
-    if(c.participants.length === 0){
+    const visibleParticipants = activeParticipants(c);
+    if(visibleParticipants.length === 0){
       html += `<div class="em-empty"><h3>Ingen deltagere endnu</h3><p>Klik "+ Tilføj deltager" for at oprette den første.</p></div>`;
     } else {
       html += `<div class="em-grid">`;
-      c.participants.forEach(p => {
+      visibleParticipants.forEach(p => {
         const prog = progressOfParticipant(p, c);
         const stripe = p.godkendt ? 'var(--green)' : 'var(--purple)';
         const srcElev = p.elevId ? findElev(p.elevId) : null;
@@ -2120,10 +2301,10 @@
   }
 
   async function onDeleteCourse(c){
-    if(!confirm(`Slet uddannelsen "${c.navn}" og alle ${c.participants.length} deltagere permanent?`)) return;
-    eduCourses = eduCourses.filter(x => x.id !== c.id);
+    if(!confirm(`Flyt uddannelsen "${c.navn}" til papirkurven? Kan gendannes senere fra Dashboard.`)) return;
+    c.deleted = true;
     await saveEdu();
-    logActivity(`Slettede uddannelsen **${c.navn}**`);
+    logActivity(`Flyttede uddannelsen **${c.navn}** til papirkurven`);
     view.eduMode = 'courses'; view.eduSelectedCourseId = null;
     render();
   }
@@ -2232,10 +2413,10 @@
   }
 
   async function onDeleteParticipant(c, p){
-    if(!confirm(`Slet ${p.navn} permanent fra ${c.navn}?`)) return;
-    c.participants = c.participants.filter(x => x.id !== p.id);
+    if(!confirm(`Flyt ${p.navn} til papirkurven for ${c.navn}? Kan gendannes senere fra Dashboard.`)) return;
+    p.deleted = true;
     await saveEdu();
-    logActivity(`Fjernede **${p.navn}** fra **${c.navn}**`);
+    logActivity(`Flyttede **${p.navn}** til papirkurven (${c.navn})`);
     view.eduMode = 'course'; view.eduSelectedParticipantId = null;
     render();
   }
@@ -2243,7 +2424,7 @@
   // ===================== PERSONALE: samlet oversigt =====================
   function buildRoster(){
     const map = new Map();
-    elever.forEach(e => {
+    activeElever().forEach(e => {
       if(!e.godkendt) return;
       map.set('elev:' + e.id, {
         navn: e.navn, elevId: e.id,
@@ -2252,8 +2433,8 @@
         courses: [],
       });
     });
-    eduCourses.forEach(c => {
-      c.participants.forEach(p => {
+    activeCourses().forEach(c => {
+      activeParticipants(c).forEach(p => {
         const key = p.elevId ? ('elev:' + p.elevId) : ('name:' + p.navn.trim().toLowerCase());
         if(!map.has(key)){
           const srcElev = p.elevId ? findElev(p.elevId) : null;
@@ -2274,7 +2455,7 @@
     const roster = buildRoster();
     const q = view.personaleSearch.trim().toLowerCase();
     const filteredRoster = roster.filter(r => !q || r.navn.toLowerCase().includes(q));
-    const filteredPersonale = personaleList.filter(p => !q || p.navn.toLowerCase().includes(q));
+    const filteredPersonale = activePersonale().filter(p => !q || p.navn.toLowerCase().includes(q));
 
     let html = `
       <div class="em-toolbar">
@@ -2299,7 +2480,7 @@
     }
 
     html += `<div class="em-section-title">Tilføjet personale</div>`;
-    if(personaleList.length === 0){
+    if(activePersonale().length === 0){
       html += `<div class="em-empty"><h3>Ingen tilføjet endnu</h3><p>Klik "+ Tilføj personale" for at oprette den første, og sæt derefter spor/uddannelser ved at klikke på dem.</p></div>`;
     } else if(filteredPersonale.length === 0){
       html += `<div class="em-empty"><h3>Ingen match</h3><p>Prøv en anden søgning.</p></div>`;
@@ -2395,11 +2576,12 @@
     html += `</div></div>`;
 
     html += `<div class="em-section-title">Uddannelser</div>`;
-    if(eduCourses.length === 0){
+    const activeCoursesForQuals = activeCourses();
+    if(activeCoursesForQuals.length === 0){
       html += `<div class="em-empty"><p>Ingen uddannelser oprettet endnu — opret en under Videreuddannelse-fanen først.</p></div>`;
     } else {
       html += `<div class="em-form-panel"><div style="display:flex;flex-wrap:wrap;gap:10px;">`;
-      eduCourses.forEach(c => {
+      activeCoursesForQuals.forEach(c => {
         const active = p.quals.includes(c.id);
         html += `<button class="em-qual-chip ${active?'active':''}" data-course="${c.id}" ${canApprove()?'':'disabled'}>${active?'✓ ':''}${escapeHtml(c.navn)}</button>`;
       });
@@ -2441,6 +2623,7 @@
         timeout,
       ]);
       render();
+      startAutoRefresh();
     }catch(err){
       bodyEl.innerHTML = `
         <div class="em-empty" style="text-align:left;padding:24px;">
